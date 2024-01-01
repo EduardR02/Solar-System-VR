@@ -56,7 +56,8 @@
 			float waveSpeed;
 
 			sampler2D _MainTex;
-			sampler2D _CameraDepthTexture;
+			//sampler2D _CameraDepthTexture;
+			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
 			float4 params;
 
 			float planetScale;
