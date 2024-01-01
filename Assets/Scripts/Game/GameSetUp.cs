@@ -10,19 +10,14 @@ public class GameSetUp : MonoBehaviour {
 
 	void Start () {
 		Ship ship = FindObjectOfType<Ship> ();
-		PlayerController player = FindObjectOfType<PlayerController> ();
-
 		if (startCondition == StartCondition.InShip) {
-			ship.PilotShip ();
-			ship.flightControls.ForcePlayerInInteractionZone ();
+			Debug.Log(ship.transform.position);
 		} else if (startCondition == StartCondition.OnBody) {
+			Debug.Log(startBody);
 			if (startBody) {
-				Vector3 pointAbovePlanet = startBody.transform.position + Vector3.right * startBody.radius * 1.1f;
-				player.transform.position = pointAbovePlanet;
-				player.SetVelocity (startBody.initialVelocity);
-				ship.transform.position = pointAbovePlanet + Vector3.right * 20;
-				ship.SetVelocity (startBody.initialVelocity);
-				ship.ToggleHatch ();
+				Vector3 pointAbovePlanet = startBody.transform.position + Vector3.up * startBody.radius * 1.5f;
+				ship.Rigidbody.MovePosition(pointAbovePlanet + Vector3.up * 20);
+				ship.SetVelocity(startBody.initialVelocity);
 			}
 		}
 	}
