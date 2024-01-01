@@ -31,7 +31,6 @@ public class PlanetTest : MonoBehaviour {
 			}
 			if (spawnShip) {
 				var ship = Instantiate (shipPrefab, Vector3.up * radius * 1.2f + Vector3.forward * 20 + shipOffset, Quaternion.identity);
-				ship.ToggleHatch ();
 			}
 			if (sun) {
 				sun.gameObject.SetActive (true);
