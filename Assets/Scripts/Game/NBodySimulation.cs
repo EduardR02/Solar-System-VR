@@ -17,13 +17,10 @@ public class NBodySimulation : MonoBehaviour {
         for (int i = 0; i < bodies.Length; i++) {
             Vector3 acceleration = CalculateAcceleration (bodies[i].Position, bodies[i]);
             bodies[i].UpdateVelocity (acceleration, Universe.physicsTimeStep);
-            //bodies[i].UpdateVelocity (bodies, Universe.physicsTimeStep);
         }
-
         for (int i = 0; i < bodies.Length; i++) {
             bodies[i].UpdatePosition (Universe.physicsTimeStep);
         }
-
     }
 
     public static Vector3 CalculateAcceleration (Vector3 point, CelestialBody ignoreBody = null) {
@@ -35,7 +32,6 @@ public class NBodySimulation : MonoBehaviour {
                 acceleration += forceDir * Universe.gravitationalConstant * body.mass / sqrDst;
             }
         }
-
         return acceleration;
     }
 
