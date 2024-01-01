@@ -5,25 +5,25 @@ using UnityEngine;
 public class EndlessManager : MonoBehaviour {
 
     public float distanceThreshold = 1000;
-    List<Transform> physicsObjects;
+    List<Rigidbody> physicsObjects;
     Ship ship;
-    PlayerController player;
     Camera playerCamera;
+    PlayerPathVis pathVis;
 
     public event System.Action PostFloatingOriginUpdate;
 
     void Awake () {
-        var ship = FindObjectOfType<Ship> ();
-        var player = FindObjectOfType<PlayerController> ();
+        ship = FindObjectOfType<Ship> ();
         var bodies = FindObjectsOfType<CelestialBody> ();
+        pathVis = FindObjectOfType<PlayerPathVis> ();
 
-        physicsObjects = new List<Transform> ();
-        physicsObjects.Add (ship.transform);
-        physicsObjects.Add (player.transform);
+        physicsObjects = new List<Rigidbody>
+        {
+            ship.Rigidbody
+        };
         foreach (var c in bodies) {
-            physicsObjects.Add (c.transform);
+            physicsObjects.Add (c.Rigidbody);
         }
-
         playerCamera = Camera.main;
     }
 
@@ -37,10 +37,13 @@ public class EndlessManager : MonoBehaviour {
     void UpdateFloatingOrigin () {
         Vector3 originOffset = playerCamera.transform.position;
         float dstFromOrigin = originOffset.magnitude;
-
         if (dstFromOrigin > distanceThreshold) {
-            foreach (Transform t in physicsObjects) {
-                t.position -= originOffset;
+            pathVis.OriginShift (originOffset);
+            foreach (Rigidbody rb in physicsObjects) {
+                // rb.position combined with lateupdate works, don't put .MovePosition as you don't want interpolation
+                // wihch would create bad feedback loop. If you use fixedupdate there is a small "shift" because the interpolation gets "thrown off"
+                // so this works best by far!
+                rb.position -= originOffset;
             }
         }
     }
