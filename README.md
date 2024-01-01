@@ -1,17 +1,27 @@
 # Solar System
 
-Development branch of my little solar system experiment. Inspired by Outer Wilds.
+This is a VR port and modification of the original Solar System project by Sebastian Lague:  
+https://github.com/SebLague/Solar-System  
 
-Notes: If you're looking for the code from a specific episode, you can find it in the branches. You may need to have Blender installed to view some of the 3D models.
+## Goal
+The goal of this project is to add an interaction and locomotion technique in VR, and also make this somewhat fun as a game.  
+This is for a University project.  
 
-[Watch episode 01: Solar System](https://www.youtube.com/watch?v=7axImc1sxa0)
 
-[Watch episode 02: Procedural Moons and Planets](https://youtu.be/lctXaT9pxA0)
+## Planned Changes
+- Add coins to collect
+- Add interaction technique
+- Fix shaders for Multi View rendering (!)
+- New planets that look different
+- Add nice Vignette
+- Might add simple "walking" and rotation using controller joystick
+## Made Changes
+- Faster paced planet configuration
+- More planets
+- Auto rotate planets into camera view
+- Got LOD calculation and origin shift working
+- Main "player" object is now "Ship", PlayerController removed/not relevant
+- Semi working projected player path line
+- VR cam with interactors
+- Particles as "booster exhaust"
 
-[Watch episode 03: Atmospheres](https://youtu.be/DxfEbulyFcY)
-
-![Atmosphere](https://raw.githubusercontent.com/SebLague/Images/master/Atmosphere.png)
-
-![Procedural Moons and Planets](https://raw.githubusercontent.com/SebLague/Images/master/Procedural%20moons%20and%20planets.png)
-
-![SolarSystem](https://github.com/SebLague/Images/blob/master/Solar%20System.png?raw=true)
