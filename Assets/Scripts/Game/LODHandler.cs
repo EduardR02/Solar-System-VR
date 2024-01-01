@@ -9,6 +9,9 @@ public class LODHandler : MonoBehaviour {
 	public float lod1Threshold = .5f;
 	public float lod2Threshold = .2f;
 
+	[Header ("Update frequency (seconds)")]
+	public float updateFrequency = 0.01f;
+
 	[Header ("Debug")]
 	public bool debug;
 	public CelestialBody debugBody;
@@ -17,8 +20,10 @@ public class LODHandler : MonoBehaviour {
 	Transform camT;
 	CelestialBody[] bodies;
 	CelestialBodyGenerator[] generators;
+	private float timePassedSinceUpdate;
 
 	void Start () {
+		timePassedSinceUpdate = updateFrequency;	// so that LODs are updated on first frame
 		if (Application.isPlaying) {
 			bodies = FindObjectsOfType<CelestialBody> ();
 			generators = new CelestialBodyGenerator[bodies.Length];
@@ -30,9 +35,11 @@ public class LODHandler : MonoBehaviour {
 
 	void Update () {
 		DebugLODInfo ();
+		timePassedSinceUpdate += Time.deltaTime;
 
-		if (Application.isPlaying) {
+		if (Application.isPlaying && timePassedSinceUpdate >= updateFrequency) {
 			HandleLODs ();
+			timePassedSinceUpdate = 0f;
 		}
 
 	}
@@ -40,11 +47,10 @@ public class LODHandler : MonoBehaviour {
 	void HandleLODs () {
 		for (int i = 0; i < bodies.Length; i++) {
 			if (generators[i] != null) {
-				float screenHeight = CalculateScreenHeight (bodies[i]);
+				float screenHeight = CalculateScreenHeightManual (bodies[i]);
 				int lodIndex = CalculateLODIndex (screenHeight);
 				generators[i].SetLOD (lodIndex);
 			}
-
 		}
 	}
 
@@ -59,13 +65,14 @@ public class LODHandler : MonoBehaviour {
 
 	void DebugLODInfo () {
 		if (debugBody && debug) {
-			float h = CalculateScreenHeight (debugBody);
+			float h = CalculateScreenHeightManual (debugBody);
 			int index = CalculateLODIndex (h);
 			Debug.Log ($"Screen height of {debugBody.name}: {h} (lod = {index})");
 		}
 	}
 
-	float CalculateScreenHeight (CelestialBody body) {
+	// don't want other scripts potentially messing with the camera's transform
+	private float CalculateScreenHeight (CelestialBody body) {
 		if (cam == null) {
 			cam = Camera.main;
 			camT = cam.transform;
@@ -79,6 +86,34 @@ public class LODHandler : MonoBehaviour {
 		float screenHeight = Mathf.Abs (viewA.y - viewB.y);
 		camT.rotation = originalRot;
 
+		return screenHeight;
+	}
+
+	// matches CalculateScreenHeight exactly without changing the camera's transform
+	// didn't want to mess with changing the camera's transform
+	// sadly no way to precompute final matrix because rotation is different for each body
+	float CalculateScreenHeightManual (CelestialBody body) {
+		if (cam == null) {
+			cam = Camera.main;
+			camT = cam.transform;
+		}
+		Vector3 bodyCentre = body.transform.position;
+		// look direction vector as rotation
+		Quaternion targetRot = Quaternion.LookRotation ((bodyCentre - camT.position).normalized, Vector3.up);
+		Quaternion deltaRot = Quaternion.Inverse (camT.rotation) * targetRot;
+		// flip z rotation because Unity convention
+		deltaRot.z *= -1;
+		// "would be" camT.up if we were to rotate camT to targetRot
+		Vector3 rotatedUp = targetRot * Vector3.up;
+		//Matrix4x4 manualViewMatrix = Matrix4x4.Inverse(Matrix4x4.TRS (camT.position, targetRot, new Vector3(1, 1, -1)));
+		Matrix4x4 R = Matrix4x4.Rotate(deltaRot);
+		//Matrix4x4 MVP = cam.projectionMatrix * customViewMatrix; // Skipping M, point in world coordinates
+		Matrix4x4 VP = cam.projectionMatrix * R * cam.worldToCameraMatrix; // Skipping M, point in world coordinates
+		//Debug.Log ($"view matrix custom:\n {manualViewMatrix}, R * unity view matrix:\n {R*cam.worldToCameraMatrix} Z flipped :\n {R}");
+		Vector3 viewA = VP.MultiplyPoint (bodyCentre - rotatedUp * body.radius);
+		Vector3 viewB = VP.MultiplyPoint (bodyCentre + rotatedUp * body.radius);
+		// normalize y to 0 - 1 from (-1) to 1 and get screen height
+		float screenHeight = Mathf.Abs (viewA.y - viewB.y) * 0.5f;
 		return screenHeight;
 	}
 }
