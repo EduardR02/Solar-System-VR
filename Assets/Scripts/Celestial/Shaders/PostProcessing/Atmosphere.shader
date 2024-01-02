@@ -14,6 +14,7 @@
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma multi_compile_instancing
 
 			#include "UnityCG.cginc"
 			#include "../Includes/Math.cginc"
@@ -22,43 +23,29 @@
 			struct appdata {
 					float4 vertex : POSITION;
 					float4 uv : TEXCOORD0;
+					UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct v2f {
 					float4 pos : SV_POSITION;
 					float2 uv : TEXCOORD0;
-					float3 viewVector : TEXCOORD1;
+					half2 uvST : TEXCOORD1;
+					UNITY_VERTEX_OUTPUT_STEREO
 			};
-
-			v2f vert (appdata v) {
-					v2f output;
-					output.pos = UnityObjectToClipPos(v.vertex);
-					output.uv = v.uv;
-					// Camera space matches OpenGL convention where cam forward is -z. In unity forward is positive z.
-					// (https://docs.unity3d.com/ScriptReference/Camera-cameraToWorldMatrix.html)
-					float3 viewVector = mul(unity_CameraInvProjection, float4(v.uv.xy * 2 - 1, 0, -1));
-					output.viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
-					return output;
-			}
-
-			float2 squareUV(float2 uv) {
-				float width = _ScreenParams.x;
-				float height =_ScreenParams.y;
-				//float minDim = min(width, height);
-				float scale = 1000;
-				float x = uv.x * width;
-				float y = uv.y * height;
-				return float2 (x/scale, y/scale);
-			}
-
 
 
 			sampler2D _BlueNoise;
-			sampler2D _MainTex;
+			// sampler2D _MainTex;
+			UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
+			half4 _MainTex_ST;
 			sampler2D _BakedOpticalDepth;
 			//sampler2D _CameraDepthTexture;
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
 			float4 params;
+
+			float4x4 UV_TO_EYE_TO_WORLD[2];
+			// unity setVectorArray only works with vector4
+			float4 _WorldSpaceEyePos[2];
 
 			float3 dirToSun;
 
@@ -75,6 +62,30 @@
 			float ditherStrength;
 			float ditherScale;
 			float densityFalloff;
+
+
+			v2f vert (appdata v) {
+					v2f output;
+					UNITY_SETUP_INSTANCE_ID(v); //Insert
+					UNITY_INITIALIZE_OUTPUT(v2f, output); //Insert
+					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output); //Insert
+					output.pos = UnityObjectToClipPos(v.vertex);
+					output.uv = v.uv;
+					output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
+					// Camera space matches OpenGL convention where cam forward is -z. In unity forward is positive z.
+					// (https://docs.unity3d.com/ScriptReference/Camera-cameraToWorldMatrix.html)
+					return output;
+			}
+
+			float2 squareUV(float2 uv) {
+				float width = _ScreenParams.x;
+				float height =_ScreenParams.y;
+				//float minDim = min(width, height);
+				float scale = 1000;
+				float x = uv.x * width;
+				float y = uv.y * height;
+				return float2 (x/scale, y/scale);
+			}
 
 			
 			float densityAtPoint(float3 densitySamplePoint) {
@@ -162,12 +173,22 @@
 
 			float4 frag (v2f i) : SV_Target
 			{
-				float4 originalCol = tex2D(_MainTex, i.uv);
-				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
-				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) * length(i.viewVector);
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+				// float4 originalCol = tex2D(_MainTex, i.uv);
+				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.uvST);
+
+				//float3 viewVector = mul(unity_CameraInvProjection, float4(i.uv.xy * 2 - 1, 0, -1));
+				//viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
+
+				// don't need to -1 the z because we already do that in the matrix
+				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uv.xy * 2 - 1, 0, 1));
+
+				// float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
+				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uvST);
+				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) * length(viewVector);
 											
-				float3 rayOrigin = _WorldSpaceCameraPos;
-				float3 rayDir = normalize(i.viewVector);
+				float3 rayOrigin = _WorldSpaceEyePos[unity_StereoEyeIndex].xyz;
+				float3 rayDir = normalize(viewVector);
 				
 				float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir);
 				float dstToSurface = min(sceneDepth, dstToOcean);

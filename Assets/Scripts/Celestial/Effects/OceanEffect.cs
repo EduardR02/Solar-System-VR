@@ -20,6 +20,9 @@ public class OceanEffect {
 		float radius = generator.GetOceanRadius ();
 		material.SetVector ("oceanCentre", centre);
 		material.SetFloat ("oceanRadius", radius);
+		
+		material.SetMatrixArray("UV_TO_EYE_TO_WORLD", CustomPostProcessing._uvToEyeToWorld);
+		material.SetVectorArray("_WorldSpaceEyePos", CustomPostProcessing._eyePosition);
 
 		material.SetFloat ("planetScale", generator.BodyScale);
 		if (light) {

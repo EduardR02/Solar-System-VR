@@ -11,17 +11,17 @@ This is for a University project.
 ## Planned Changes
 - Add coins to collect
 - Add interaction technique
-- Fix shaders for Multi View rendering (!)
-- New planets that look different
 - Add nice Vignette
 - Might add simple "walking" and rotation using controller joystick
 ## Made Changes
+- Shaders work with Multi View rendering
 - Faster paced planet configuration
 - More planets
 - Auto rotate planets into camera view
 - Got LOD calculation and origin shift working
 - Main "player" object is now "Ship", PlayerController removed/not relevant
-- Semi working projected player path line
+- Projected player path line
 - VR cam with interactors
 - Particles as "booster exhaust"
+- New planets that look differents
 

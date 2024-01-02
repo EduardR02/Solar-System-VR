@@ -26,6 +26,9 @@ public class AtmosphereEffect {
 		//material.SetFloat ("atmosphereRadius", (1 + 0.5f) * generator.BodyScale);
 		material.SetFloat ("oceanRadius", generator.GetOceanRadius ());
 
+		material.SetMatrixArray("UV_TO_EYE_TO_WORLD", CustomPostProcessing._uvToEyeToWorld);
+		material.SetVectorArray("_WorldSpaceEyePos", CustomPostProcessing._eyePosition);
+		
 		if (light) {
 			Vector3 dirFromPlanetToSun = (light.transform.position - generator.transform.position).normalized;
 			//Debug.Log(dirFromPlanetToSun);

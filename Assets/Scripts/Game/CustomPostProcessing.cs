@@ -8,16 +8,20 @@ public class CustomPostProcessing : MonoBehaviour {
 	Shader defaultShader;
 	Material defaultMat;
 	List<RenderTexture> temporaryTextures = new List<RenderTexture> ();
+	Camera cam;
 	public bool debugOceanMask;
 
 	public event System.Action<RenderTexture> onPostProcessingComplete;
 	public event System.Action<RenderTexture> onPostProcessingBegin;
+	public static Matrix4x4[] _uvToEyeToWorld = new Matrix4x4[2];
+	public static Vector4[] _eyePosition = new Vector4[2];
 
 	void Init () {
 		if (defaultShader == null) {
 			defaultShader = Shader.Find ("Unlit/Texture");
 		}
 		defaultMat = new Material (defaultShader);
+		cam = Camera.main;
 	}
 
 	[ImageEffectOpaque]
@@ -31,6 +35,9 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		RenderTexture currentSource = intialSource;
 		RenderTexture currentDestination = null;
+		if (Application.isPlaying) {
+			CalculateStereoViewMatrix();
+		}
 
 		if (effects != null) {
 			for (int i = 0; i < effects.Length; i++) {
@@ -105,6 +112,39 @@ public class CustomPostProcessing : MonoBehaviour {
 		for (int i = 0; i < temporaryTextures.Count; i++) {
 			RenderTexture.ReleaseTemporary (temporaryTextures[i]);
 		}
+	}
+
+	void CalculateStereoViewMatrix() {
+		Matrix4x4[] _eyeProjection = new Matrix4x4[2];
+		Matrix4x4[] _eyeToWorld = new Matrix4x4[2];
+		// stolen from https://github.com/sigtrapgames/VrTunnellingPro-Unity
+        _eyeProjection[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+        _eyeProjection[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+        _eyeProjection[0] = GL.GetGPUProjectionMatrix(_eyeProjection[0], true).inverse;
+        _eyeProjection[1] = GL.GetGPUProjectionMatrix(_eyeProjection[1], true).inverse;
+        
+        #if (!UNITY_STANDALONE_OSX && !UNITY_ANDROID) || UNITY_EDITOR_WIN 
+			var api = SystemInfo.graphicsDeviceType;
+			if (
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES2 &&
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore &&
+				api != UnityEngine.Rendering.GraphicsDeviceType.Vulkan
+			){
+				_eyeProjection[0][1, 1] *= -1f;
+				_eyeProjection[1][1, 1] *= -1f;
+			}
+		#endif
+        
+		/// material.SetMatrixArray(_propEyeProjection, _eyeProjection);
+
+		_eyeToWorld[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
+		_eyeToWorld[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
+		_uvToEyeToWorld[0] = _eyeToWorld[0] * _eyeProjection[0];
+		_uvToEyeToWorld[1] = _eyeToWorld[1] * _eyeProjection[1];
+
+		_eyePosition[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse.GetColumn(3);
+		_eyePosition[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse.GetColumn(3);
 	}
 
 	public static RenderTexture TemporaryRenderTexture (RenderTexture template) {
