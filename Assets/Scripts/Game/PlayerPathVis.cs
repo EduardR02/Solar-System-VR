@@ -49,11 +49,15 @@ public class PlayerPathVis : MonoBehaviour
         playerPath[0] = player.transform.position;
         CelestialBody referenceBody = player.ReferenceBody;
         VirtualBody referenceVirtualBody = (referenceBody != null) ? virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]] : null;
-        Vector3 PlayerVelocity = player.Rigidbody.velocity - ((referenceBody != null) ? referenceBody.Rigidbody.velocity: Vector3.zero);
+        Vector3 offset = player.transform.position - referenceVirtualBody.simluatedPositions.Get(0);
+        Vector3 PlayerVelocity = player.Rigidbody.velocity;
         for (int i = 0; i < numSteps - 1; i++) {
             Vector3 acceleration = CalculateAcceleration(playerPath[i], i);
-            PlayerVelocity += (acceleration - ((referenceVirtualBody != null) ? referenceVirtualBody.simulatedAccs.Get(i+1): Vector3.zero)) * timeStep;
+            PlayerVelocity += acceleration * timeStep;
             playerPath[i + 1] = playerPath[i] + PlayerVelocity * timeStep;
+        }
+        for (int i = 0; i < numSteps - 1; i++) {
+            playerPath[i + 1] += -referenceVirtualBody.simluatedPositions.Get(i+1) + playerPath[0] - offset;
         }
     }
 
