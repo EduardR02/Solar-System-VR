@@ -12,6 +12,7 @@ public class PlayerPathVis : MonoBehaviour
     private VirtualBody[] virtualBodies;
     private LineRenderer lineRenderer;
     private Dictionary<int, int> bodyIDToIndex = new Dictionary<int, int>();
+    Vector3[] playerPath;
 
 
 
@@ -24,6 +25,7 @@ public class PlayerPathVis : MonoBehaviour
         lineRenderer = GetComponentInChildren<LineRenderer>();
         player = FindObjectOfType<Ship>();
         lineRenderer.positionCount = numSteps;
+        playerPath = new Vector3[numSteps];
         InitVirtualBodies();
         InitDictionary();
     }
@@ -34,19 +36,25 @@ public class PlayerPathVis : MonoBehaviour
         DrawPath();
     }
 
-    void DrawPath() {
+    void FixedUpdate() {
         SimulateBodies(1);
-        Vector3[] playerPath = new Vector3[numSteps];
+    }
+
+    void DrawPath() {
+        CalcPlayerPath();
+        lineRenderer.SetPositions(playerPath);
+    }
+
+    void CalcPlayerPath() {
         playerPath[0] = player.transform.position;
         CelestialBody referenceBody = player.ReferenceBody;
         VirtualBody referenceVirtualBody = (referenceBody != null) ? virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]] : null;
         Vector3 PlayerVelocity = player.Rigidbody.velocity - ((referenceBody != null) ? referenceBody.Rigidbody.velocity: Vector3.zero);
-        for (int i = 1; i < numSteps; i++) {
-            Vector3 acceleration = CalculateAcceleration(playerPath[i - 1], i - 1)  * timeStep;
-            PlayerVelocity += acceleration - ((referenceVirtualBody != null) ? referenceVirtualBody.simulatedAccs.Get(i): Vector3.zero);
-            playerPath[i] = playerPath[i - 1] + (PlayerVelocity) * timeStep;
+        for (int i = 0; i < numSteps - 1; i++) {
+            Vector3 acceleration = CalculateAcceleration(playerPath[i], i);
+            PlayerVelocity += (acceleration - ((referenceVirtualBody != null) ? referenceVirtualBody.simulatedAccs.Get(i+1): Vector3.zero)) * timeStep;
+            playerPath[i + 1] = playerPath[i] + PlayerVelocity * timeStep;
         }
-        lineRenderer.SetPositions(playerPath);
     }
 
     void InitVirtualBodies() {
@@ -69,8 +77,8 @@ public class PlayerPathVis : MonoBehaviour
         for (int step = 0; step < steps; step++) {
             // Update velocities
             for (int i = 0; i < virtualBodies.Length; i++) {
-                virtualBodies[i].simulatedAccs.Add(CalculateAcceleration(i) * timeStep);
-                virtualBodies[i].velocity +=  virtualBodies[i].simulatedAccs.GetLast();
+                virtualBodies[i].simulatedAccs.Add(CalculateAcceleration(i));
+                virtualBodies[i].velocity +=  virtualBodies[i].simulatedAccs.GetLast() * timeStep;
             }
             // Update positions
             for (int i = 0; i < virtualBodies.Length; i++) {
@@ -124,7 +132,7 @@ public class PlayerPathVis : MonoBehaviour
             id = body.GetInstanceID();
             simluatedPositions = new RingBuffer<Vector3>(numSteps);
             simluatedPositions.Add(body.transform.position);
-            velocity = body.Rigidbody.velocity;
+            velocity = body.initialVelocity;
             simulatedAccs = new RingBuffer<Vector3>(numSteps);
             simulatedAccs.Add(Vector3.zero);
         }
