@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.EditorTools;
 using UnityEngine;
 
 public class PlayerPathVis : MonoBehaviour
 {
 
+    [Tooltip("Number of steps to simulate using the physics timestep")]
     public int numSteps = 500;
-    public float timeStep = 0.01f;
-    public bool usePhysicsTimeStep;
+    private float timeStep;
     private Ship player;
     private VirtualBody[] virtualBodies;
     private LineRenderer lineRenderer;
@@ -19,9 +20,7 @@ public class PlayerPathVis : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        if (usePhysicsTimeStep) {
-            timeStep = Universe.physicsTimeStep;
-        }
+        timeStep = Universe.physicsTimeStep;
         lineRenderer = GetComponentInChildren<LineRenderer>();
         player = FindObjectOfType<Ship>();
         lineRenderer.positionCount = numSteps;
@@ -49,15 +48,16 @@ public class PlayerPathVis : MonoBehaviour
         playerPath[0] = player.transform.position;
         CelestialBody referenceBody = player.ReferenceBody;
         VirtualBody referenceVirtualBody = (referenceBody != null) ? virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]] : null;
-        Vector3 offset = player.transform.position - referenceVirtualBody.simluatedPositions.Get(0);
         Vector3 PlayerVelocity = player.Rigidbody.velocity;
+        // need prev, otherwise offset will affect calculation
+        Vector3 prevPathPoint = playerPath[0];
         for (int i = 0; i < numSteps - 1; i++) {
-            Vector3 acceleration = CalculateAcceleration(playerPath[i], i);
+            Vector3 acceleration = CalculateAcceleration(prevPathPoint, i);
             PlayerVelocity += acceleration * timeStep;
-            playerPath[i + 1] = playerPath[i] + PlayerVelocity * timeStep;
-        }
-        for (int i = 0; i < numSteps - 1; i++) {
-            playerPath[i + 1] += -referenceVirtualBody.simluatedPositions.Get(i+1) + playerPath[0] - offset;
+            playerPath[i + 1] = prevPathPoint + PlayerVelocity * timeStep;
+            prevPathPoint = playerPath[i + 1];
+            // to be relative to the closest body, player path will be offset by reference body's positional change
+            playerPath[i + 1] += referenceVirtualBody.simluatedPositions.Get(0) - referenceVirtualBody.simluatedPositions.Get(i+1);
         }
     }
 
@@ -81,8 +81,7 @@ public class PlayerPathVis : MonoBehaviour
         for (int step = 0; step < steps; step++) {
             // Update velocities
             for (int i = 0; i < virtualBodies.Length; i++) {
-                virtualBodies[i].simulatedAccs.Add(CalculateAcceleration(i));
-                virtualBodies[i].velocity +=  virtualBodies[i].simulatedAccs.GetLast() * timeStep;
+                virtualBodies[i].velocity +=  CalculateAcceleration(i) * timeStep;
             }
             // Update positions
             for (int i = 0; i < virtualBodies.Length; i++) {
@@ -128,7 +127,6 @@ public class PlayerPathVis : MonoBehaviour
         public int id;
         public Vector3 velocity;
         public RingBuffer<Vector3> simluatedPositions;
-        public RingBuffer<Vector3> simulatedAccs;
 
         public VirtualBody (CelestialBody body, int numSteps) {
             // last position of ringbuffer is duplicate to this, but whatever
@@ -137,8 +135,6 @@ public class PlayerPathVis : MonoBehaviour
             simluatedPositions = new RingBuffer<Vector3>(numSteps);
             simluatedPositions.Add(body.transform.position);
             velocity = body.initialVelocity;
-            simulatedAccs = new RingBuffer<Vector3>(numSteps);
-            simulatedAccs.Add(Vector3.zero);
         }
     }
 
