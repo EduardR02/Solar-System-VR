@@ -21,6 +21,7 @@ public class StarTest : MonoBehaviour {
 	Texture2D spectrum;
 	bool settingsUpdated;
 	OceanMaskRenderer oceanMaskRenderer;
+	Rigidbody rb;
 
 	void Start () {
 		Init (true);
@@ -41,6 +42,7 @@ public class StarTest : MonoBehaviour {
 		if (regenerateMesh) {
 			GenerateMesh ();
 		}
+		InitRigidbody ();
 		var customPostProcessing = FindObjectOfType<CustomPostProcessing> ();
 		customPostProcessing.onPostProcessingComplete -= Set;
 		customPostProcessing.onPostProcessingComplete += Set;
@@ -53,6 +55,19 @@ public class StarTest : MonoBehaviour {
 			oceanMaskRenderer = FindObjectOfType<OceanMaskRenderer> ();
 		}
 
+	}
+
+	void InitRigidbody () {
+		rb = GetComponent<Rigidbody> ();
+		rb.isKinematic = true;
+		rb.useGravity = false;
+	}
+
+	public void UpdateOrigin(Vector3 originOffset) {
+		// kind of "dumb" way to do this because it doesnt make sense for the stars to have a rigidbody, but transform.position
+		// wont work because everything else uses rigidbody and rigidbody updates differently from transform.position, maybe because of interpolation
+		// so when transform.position is used it flickers...
+		rb.position -= originOffset;
 	}
 
 	public void Set (RenderTexture screen) {

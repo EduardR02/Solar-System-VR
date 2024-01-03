@@ -51,6 +51,10 @@ public class CelestialBody : GravityObject {
         Rigidbody.mass = mass;
     }
 
+    public void UpdateOrigin (Vector3 originOffset) {
+        rb.position -= originOffset;
+    }
+
     public Rigidbody Rigidbody {
         get {
             if (!rb) {

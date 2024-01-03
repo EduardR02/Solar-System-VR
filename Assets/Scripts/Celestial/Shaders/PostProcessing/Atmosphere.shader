@@ -72,8 +72,6 @@
 					output.pos = UnityObjectToClipPos(v.vertex);
 					output.uv = v.uv;
 					output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
-					// Camera space matches OpenGL convention where cam forward is -z. In unity forward is positive z.
-					// (https://docs.unity3d.com/ScriptReference/Camera-cameraToWorldMatrix.html)
 					return output;
 			}
 

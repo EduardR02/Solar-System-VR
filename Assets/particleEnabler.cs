@@ -9,6 +9,7 @@ public class ParticleController : MonoBehaviour
 
     float maxLifetime;
     float minLifetimePercent = 0.35f;
+    private ParticleSystem.Particle[] particlesArr;
 
 
 
@@ -16,6 +17,7 @@ public class ParticleController : MonoBehaviour
     {
         particles = GetComponent<ParticleSystem>();
         maxLifetime = particles.main.startLifetime.constantMax;
+        particlesArr = new ParticleSystem.Particle[particles.main.maxParticles];
     }  
 
     void Update()
@@ -33,5 +35,18 @@ public class ParticleController : MonoBehaviour
             }
         }
         
+    }
+
+    public void UpdateOrigin(Vector3 originOffset) {
+        int numParticlesAlive = particles.GetParticles(particlesArr);
+        for (int i = 0; i < numParticlesAlive; i++)
+        {
+            particlesArr[i].position -= originOffset;
+        }
+        particles.SetParticles(particlesArr, numParticlesAlive);
+    }
+
+    public ParticleSystem GetParticleSystem() {
+        return particles;
     }
 }

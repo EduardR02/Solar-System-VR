@@ -1,8 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.UIElements;
+using UnityEngine.Playables;
 
 public class Ship : GravityObject {
 
@@ -31,14 +30,14 @@ public class Ship : GravityObject {
 	private bool updateCamForward = true;
 	Vector3 camForward = Vector3.zero;
 	Vector3 lockedGravityUp = Vector3.zero;
+	PlayerPathVis playerPathVis;
+	ParticleController[] ExhaustParticleSystems;
 
 	void Awake () {
 		InitRigidbody ();
 		cam = GetComponentInChildren<Camera> ();
-	}
-
-	void Update () {
-		HandleCheats ();
+		playerPathVis = GetComponentInChildren<PlayerPathVis> ();
+		ExhaustParticleSystems = GetComponentsInChildren<ParticleController> ();
 	}
 
 	void ThrusterMovement() {
@@ -134,16 +133,14 @@ public class Ship : GravityObject {
 		rb.MovePosition (body.transform.position + (transform.position - body.transform.position).normalized * body.radius * 2);
 	}
 
-	void HandleCheats () {
-		if (Universe.cheatsEnabled) {
-			if (Input.GetKeyDown (KeyCode.Return) && Time.timeScale != 0) {
-				var shipHud = FindObjectOfType<ShipHUD> ();
-				if (shipHud.LockedBody) {
-					TeleportToBody (shipHud.LockedBody);
-				}
-			}
+	public void UpdateOrigin (Vector3 originOffset) {
+		for (int i = 0; i < ExhaustParticleSystems.Length; i++) {
+			ExhaustParticleSystems[i].UpdateOrigin(originOffset);
 		}
-	}
+		rb.position -= originOffset;
+		playerPathVis.OriginShift (originOffset);
+		
+    }
 
 	void InitRigidbody () {
 		rb = GetComponentInParent<Rigidbody> ();
