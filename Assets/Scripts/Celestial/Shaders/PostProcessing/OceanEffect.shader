@@ -65,14 +65,14 @@
 
 			
 			v2f vert (appdata v) {
-					v2f output;
-					UNITY_SETUP_INSTANCE_ID(v); //Insert
-					UNITY_INITIALIZE_OUTPUT(v2f, output); //Insert
-					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output); //Insert
-					output.pos = UnityObjectToClipPos(v.vertex);
-					output.uv = v.uv;
-					output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
-					return output;
+				v2f output;
+				UNITY_SETUP_INSTANCE_ID(v); //Insert
+				UNITY_INITIALIZE_OUTPUT(v2f, output); //Insert
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output); //Insert
+				output.pos = UnityObjectToClipPos(v.vertex);
+				output.uv = v.uv;
+				output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
+				return output;
 			}
 
 			fixed4 frag (v2f i) : SV_Target
@@ -80,18 +80,17 @@
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				//fixed4 originalCol = tex2D(_MainTex, i.uv);
 				fixed4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.uvST);
-
 				//float3 viewVector = mul(unity_CameraInvProjection, float4(i.uv.xy * 2 - 1, 0, -1));
 				//viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
-
+				
 				// don't need to -1 the z because we already do that in the matrix
-				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uv.xy * 2 - 1, 0, 1));
+				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uvST.xy * 2 - 1, 0, 1));
 
 				float3 rayPos = _WorldSpaceEyePos[unity_StereoEyeIndex].xyz;
 				float viewLength = length(viewVector);
 				float3 rayDir = viewVector / viewLength;
 
-				float nonlin_depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
+				float nonlin_depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uvST);
             	float sceneDepth = LinearEyeDepth(nonlin_depth) * viewLength;
 
 				float2 hitInfo = raySphere(oceanCentre, oceanRadius, rayPos, rayDir);
@@ -105,7 +104,6 @@
 
 				if (oceanViewDepth > 0) {
 					float3 clipPlanePos = rayPos + viewVector * _ProjectionParams.y;
-
 					float dstAboveWater = length(clipPlanePos - oceanCentre) - oceanRadius;
 
 					float t = 1 - exp(-oceanViewDepth / planetScale * depthMultiplier);

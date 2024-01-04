@@ -65,14 +65,14 @@
 
 
 			v2f vert (appdata v) {
-					v2f output;
-					UNITY_SETUP_INSTANCE_ID(v); //Insert
-					UNITY_INITIALIZE_OUTPUT(v2f, output); //Insert
-					UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output); //Insert
-					output.pos = UnityObjectToClipPos(v.vertex);
-					output.uv = v.uv;
-					output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
-					return output;
+				v2f output;
+				UNITY_SETUP_INSTANCE_ID(v); //Insert
+				UNITY_INITIALIZE_OUTPUT(v2f, output); //Insert
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output); //Insert
+				output.pos = UnityObjectToClipPos(v.vertex);
+				output.uv = v.uv;
+				output.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
+				return output;
 			}
 
 			float2 squareUV(float2 uv) {
@@ -179,7 +179,7 @@
 				//viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
 
 				// don't need to -1 the z because we already do that in the matrix
-				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uv.xy * 2 - 1, 0, 1));
+				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uvST.xy * 2 - 1, 0, 1));
 
 				// float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
 				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uvST);

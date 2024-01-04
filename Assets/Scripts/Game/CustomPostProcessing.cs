@@ -140,6 +140,13 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		_eyeToWorld[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
 		_eyeToWorld[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
+		// remove translational part of the matrix so that we don't have to do it every time in the shader
+		for (int i = 0; i < 2; i++) {
+			_eyeToWorld[i].m03 = 0;
+        	_eyeToWorld[i].m13 = 0;
+        	_eyeToWorld[i].m23 = 0;
+		}
+		// precompute the matrix, otherwise have to do it in every frag...
 		_uvToEyeToWorld[0] = _eyeToWorld[0] * _eyeProjection[0];
 		_uvToEyeToWorld[1] = _eyeToWorld[1] * _eyeProjection[1];
 
