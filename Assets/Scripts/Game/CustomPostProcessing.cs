@@ -35,7 +35,7 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		RenderTexture currentSource = intialSource;
 		RenderTexture currentDestination = null;
-		if (Application.isPlaying) {
+		if (Application.isPlaying && cam.stereoEnabled) {
 			CalculateStereoViewMatrix();
 		}
 

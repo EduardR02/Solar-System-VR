@@ -60,6 +60,9 @@ public class OceanMaskRenderer : MonoBehaviour {
 			}
 			mat.SetInt ("numSpheres", oceanSpheres.Length);
 			mat.SetVectorArray ("spheres", oceanSpheres);
+			
+			mat.SetMatrixArray ("UV_TO_EYE_TO_WORLD", CustomPostProcessing._uvToEyeToWorld);
+			mat.SetVectorArray ("_WorldSpaceEyePos", CustomPostProcessing._eyePosition);
 			//ComputeHelper.Run (oceanMaskCompute, width, height);
 
 			Graphics.Blit (screenTex, oceanMaskTexture, mat);

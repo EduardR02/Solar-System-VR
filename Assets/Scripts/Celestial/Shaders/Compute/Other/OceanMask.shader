@@ -13,6 +13,7 @@
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma multi_compile_instancing
 
 			#include "UnityCG.cginc"
 			#include "../../Includes/Math.cginc"
@@ -21,38 +22,51 @@
 			{
 					float4 vertex : POSITION;
 					float2 uv : TEXCOORD0;
+					UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct v2f
 			{
 					float2 uv : TEXCOORD0;
 					float4 vertex : SV_POSITION;
-					float3 viewVector : TEXCOORD1;
+					half2 uvST : TEXCOORD1;
+					UNITY_VERTEX_OUTPUT_STEREO
 			};
 
-			v2f vert (appdata v)
-			{
-					v2f o;
-					o.vertex = UnityObjectToClipPos(v.vertex);
-					o.uv = v.uv;
-					// Camera space matches OpenGL convention where cam forward is -z. In unity forward is positive z.
-					// (https://docs.unity3d.com/ScriptReference/Camera-cameraToWorldMatrix.html)
-					float3 viewVector = mul(unity_CameraInvProjection, float4(v.uv.xy * 2 - 1, 0, -1));
-					o.viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
-					return o;
-			}
 
 			sampler2D _MainTex;
-			static const int maxNumSpheres = 10;
+			half4 _MainTex_ST;
+			static const int maxNumSpheres = 12;
 			float4 spheres[maxNumSpheres];
 			int numSpheres;
 
+			float4x4 UV_TO_EYE_TO_WORLD[2];
+			// unity setVectorArray only works with vector4
+			float4 _WorldSpaceEyePos[2];
+
+
+			v2f vert (appdata v)
+			{
+				v2f o;
+				UNITY_SETUP_INSTANCE_ID(v); //Insert
+				UNITY_INITIALIZE_OUTPUT(v2f, o); //Insert
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o); //Insert
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				o.uv = v.uv;
+				o.uvST = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
+				return o;
+			}
+
+			
 			fixed4 frag (v2f i) : SV_Target
 			{
-				float3 rayOrigin = _WorldSpaceCameraPos;
-				float3 rayDir = normalize(i.viewVector);
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+				// don't need to -1 the z because we already do that in the matrix
+				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uvST.xy * 2 - 1, 0, 1));
+				float3 rayOrigin = _WorldSpaceEyePos[unity_StereoEyeIndex].xyz;
+				float3 rayDir = normalize(viewVector);
 
-				//return float4(rayDir,1);
+				
 
 				float nearest = 0;
 				for (int sphereIndex = 0; sphereIndex < numSpheres; sphereIndex ++) {
