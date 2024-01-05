@@ -27,9 +27,8 @@ public class Ship : GravityObject {
 	Rigidbody rb;
 	CelestialBody referenceBody;
 	Camera cam;
-	private bool updateCamForward = true;
-	Vector3 camForward = Vector3.zero;
-	Vector3 lockedGravityUp = Vector3.zero;
+	private bool updateTargetRotation = true;
+	Quaternion lockedTargetRotation;
 	PlayerPathVis playerPathVis;
 	ParticleController[] ExhaustParticleSystems;
 
@@ -88,7 +87,10 @@ public class Ship : GravityObject {
 		}
 		if (closestBody != referenceBody) {
 			referenceBody = closestBody;
-			updateCamForward = true;
+			if (referenceBody.bodyType != CelestialBody.BodyType.Moon) {
+				// rotate don't "rerotate" to face moons, too weird/confusing
+				updateTargetRotation = true;
+			}
 		}
 		rb.AddForce (cumulativeAcceleration, ForceMode.Acceleration);
 		SmoothRotation (-gravityOfNearestBody.normalized, nearestSurfaceDst);
@@ -107,24 +109,19 @@ public class Ship : GravityObject {
 			// Smoothly rotate to align with gravity up (player feet are "down" so he can "stand")
 			Quaternion targetRotation = Quaternion.FromToRotation (rb.transform.up, gravityUp) * rb.rotation;
 			rb.rotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-			updateCamForward = true;
+			updateTargetRotation = true;
 		}
 		else if (dstToSurface < maxRotationDistance){
 			// player is rotated to face the planet (you want to be looking forward when flying around, not down)
-			if (updateCamForward) {
-				camForward = cam.transform.forward;
+			if (updateTargetRotation) {
 				// so it doesn't "follow" the planet after the initial rotation
-				lockedGravityUp = -gravityUp;
-				updateCamForward = false;
+				lockedTargetRotation = Quaternion.FromToRotation (cam.transform.forward, -gravityUp) * rb.rotation;
+				updateTargetRotation = false;
 			}
-			Quaternion targetRotation = Quaternion.FromToRotation (camForward, lockedGravityUp) * rb.rotation;
-			targetRotation = Quaternion.Slerp (rb.rotation,  targetRotation, rotationSpeed * Time.deltaTime);
-			Quaternion rotationDelta = targetRotation * Quaternion.Inverse (rb.rotation);
-			camForward = rotationDelta * camForward;
-			rb.rotation = targetRotation;
+			rb.rotation = Quaternion.Slerp (rb.rotation,  lockedTargetRotation, rotationSpeed * Time.deltaTime);
 		}
 		else {
-			updateCamForward = true;
+			updateTargetRotation = true;
 		}
 	}
 
