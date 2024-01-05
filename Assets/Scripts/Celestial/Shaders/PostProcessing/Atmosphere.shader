@@ -46,6 +46,7 @@
 			float4x4 UV_TO_EYE_TO_WORLD[2];
 			// unity setVectorArray only works with vector4
 			float4 _WorldSpaceEyePos[2];
+			float4 backgroundColor;
 
 			float3 dirToSun;
 
@@ -162,7 +163,7 @@
 				reflectedLightStrength = lerp(reflectedLightStrength, 1, hdrStrength);
 				float3 reflectedLight = originalCol * reflectedLightStrength;
 
-				float3 finalCol = reflectedLight + inScatteredLight;
+				float3 finalCol = reflectedLight + inScatteredLight + originalCol/3;
 
 				
 				return finalCol;
@@ -174,10 +175,8 @@
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				// float4 originalCol = tex2D(_MainTex, i.uv);
 				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.uvST);
-
 				//float3 viewVector = mul(unity_CameraInvProjection, float4(i.uv.xy * 2 - 1, 0, -1));
 				//viewVector = mul(unity_CameraToWorld, float4(viewVector,0));
-
 				// don't need to -1 the z because we already do that in the matrix
 				float3 viewVector = mul(UV_TO_EYE_TO_WORLD[unity_StereoEyeIndex], float4(i.uvST.xy * 2 - 1, 0, 1));
 
@@ -194,11 +193,10 @@
 				float2 hitInfo = raySphere(planetCentre, atmosphereRadius, rayOrigin, rayDir);
 				float dstToAtmosphere = hitInfo.x;
 				float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
-				
 				if (dstThroughAtmosphere > 0) {
 					const float epsilon = 0.0001;
 					float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);
-					float3 light = calculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol, i.uv);
+					float3 light = calculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol, i.uvST);
 					return float4(light, 1);
 				}
 				return originalCol;

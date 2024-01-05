@@ -28,6 +28,7 @@ public class AtmosphereEffect {
 
 		material.SetMatrixArray("UV_TO_EYE_TO_WORLD", CustomPostProcessing._uvToEyeToWorld);
 		material.SetVectorArray("_WorldSpaceEyePos", CustomPostProcessing._eyePosition);
+		material.SetVector("backgroundColor", Camera.main.backgroundColor);
 		
 		if (light) {
 			Vector3 dirFromPlanetToSun = (light.transform.position - generator.transform.position).normalized;
