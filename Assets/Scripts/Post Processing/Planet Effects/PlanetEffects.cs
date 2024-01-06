@@ -24,6 +24,10 @@ public class PlanetEffects : PostProcessingEffect {
 
 	public override void Render (RenderTexture source, RenderTexture destination) {
 		List<Material> materials = GetMaterials ();
+		if (materials == null || materials.Count == 0) {
+			Graphics.Blit (source, destination);
+			return;
+		}
 		CustomPostProcessing.RenderMaterials (source, destination, materials);
 	}
 
@@ -57,7 +61,7 @@ public class PlanetEffects : PostProcessingEffect {
 			Vector3 camPos = cam.transform.position;
 
 			SortFarToNear (camPos);
-			GetFrustumPlanes(cam);
+			GetFrustumPlanes();
 
 			for (int i = 0; i < effectHolders.Count; i++) {
 				EffectHolder effectHolder = effectHolders[i];
@@ -105,7 +109,8 @@ public class PlanetEffects : PostProcessingEffect {
 		return false;
 	}
 
-	void GetFrustumPlanes(Camera cam) {
+	void GetFrustumPlanes() {
+		Camera cam = Camera.main;
 		Matrix4x4[] worldToProjectionMatrix = new Matrix4x4[2];
 		worldToProjectionMatrix[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
 		worldToProjectionMatrix[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
