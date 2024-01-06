@@ -8,56 +8,89 @@ public class PlayerPathVis : MonoBehaviour
 
     [Tooltip("Number of steps to simulate using the physics timestep")]
     public int numSteps = 500;
+    public int PhysicsStepsPerSimUpdate = 5;
+    private int PhysicsUpdateCounter = 0;
     private float timeStep;
     private Ship player;
     private VirtualBody[] virtualBodies;
     private LineRenderer lineRenderer;
     private Dictionary<int, int> bodyIDToIndex = new Dictionary<int, int>();
-    Vector3[] playerPath;
-
-
+    VirtualBody playerVirt;
+    CelestialBody referenceBody;
 
     // Start is called before the first frame update
     void Start()
     {
-        timeStep = Universe.physicsTimeStep;
+        timeStep = Universe.physicsTimeStep * PhysicsStepsPerSimUpdate;
         lineRenderer = GetComponentInChildren<LineRenderer>();
         player = FindObjectOfType<Ship>();
         lineRenderer.positionCount = numSteps;
-        playerPath = new Vector3[numSteps];
+        playerVirt = new VirtualBody(numSteps);
+        referenceBody = player.ReferenceBody;
         InitVirtualBodies();
         InitDictionary();
     }
 
-    // Update is called once per frame
     void Update()
     {
         DrawPath();
     }
 
     void FixedUpdate() {
-        SimulateBodies(1);
+        if (PhysicsUpdateCounter == 0) {
+            UpdatePlayerSim(1);
+            SimulateBodies(1);
+        }
+        PhysicsUpdateCounter = (PhysicsUpdateCounter + 1) % PhysicsStepsPerSimUpdate;
     }
 
     void DrawPath() {
-        CalcPlayerPath();
-        lineRenderer.SetPositions(playerPath);
+        referenceBody = player.ReferenceBody;
+        if (referenceBody == null || player.IsColliding() || !lineRenderer.enabled) {
+            lineRenderer.enabled = false;
+            return;
+        }
+        Vector3 offset = player.transform.position - playerVirt.simluatedPositions.Get(0);
+        VirtualBody referenceVirtualBody = virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]];
+        lineRenderer.SetPosition(0, playerVirt.simluatedPositions.Get(0) + offset);
+        for (int i = 1; i < numSteps; i++) {
+            Vector3 planetOffset = referenceVirtualBody.simluatedPositions.Get(0) - referenceVirtualBody.simluatedPositions.Get(i);
+            lineRenderer.SetPosition(i, playerVirt.simluatedPositions.Get(i) + offset + planetOffset);
+        }
+       
     }
 
-    void CalcPlayerPath() {
-        playerPath[0] = player.transform.position;
-        CelestialBody referenceBody = player.ReferenceBody;
-        VirtualBody referenceVirtualBody = (referenceBody != null) ? virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]] : null;
-        Vector3 PlayerVelocity = player.Rigidbody.velocity;
-        // need prev, otherwise offset will affect calculation
-        Vector3 prevPathPoint = playerPath[0];
-        for (int i = 0; i < numSteps - 1; i++) {
-            Vector3 acceleration = CalculateAcceleration(prevPathPoint, i);
-            PlayerVelocity += acceleration * timeStep;
-            playerPath[i + 1] = prevPathPoint + PlayerVelocity * timeStep;
-            prevPathPoint = playerPath[i + 1];
-            // to be relative to the closest body, player path will be offset by reference body's positional change
-            playerPath[i + 1] += referenceVirtualBody.simluatedPositions.Get(0) - referenceVirtualBody.simluatedPositions.Get(i+1);
+    void UpdatePlayerSim(int steps) {
+        Vector3 posDelta = Vector3.one;
+        if (player.IsColliding()) {
+            return;
+        }
+        lineRenderer.enabled = true;
+        if (referenceBody != null) {
+            Vector3 timeStepAdjust = Vector3.Lerp(playerVirt.simluatedPositions.Get(1), playerVirt.simluatedPositions.Get(2), PhysicsUpdateCounter / (float)PhysicsStepsPerSimUpdate);
+            posDelta = player.transform.position - timeStepAdjust;
+        }
+        if (referenceBody != null && referenceBody == player.ReferenceBody && posDelta.magnitude < 0.01f) {
+            CalcPlayerPath(steps);
+        }
+        else {
+            CalcPlayerPath();
+        }
+    }
+
+    void CalcPlayerPath(int steps = 0) {
+        if (steps == 0) {
+            playerVirt.simluatedPositions.Add(player.Rigidbody.position);
+            playerVirt.velocity = player.Rigidbody.velocity;
+        }
+        else {
+            steps = numSteps - 1 - steps;
+        }
+        for (int i = steps; i < numSteps - 1; i++) {
+            Vector3 acceleration = CalculateAcceleration(playerVirt.simluatedPositions.GetLast(), i);
+            playerVirt.velocity += acceleration * timeStep;
+            Vector3 newPos = playerVirt.simluatedPositions.GetLast() + playerVirt.velocity * timeStep;
+            playerVirt.simluatedPositions.Add(newPos);
         }
     }
 
@@ -67,7 +100,7 @@ public class PlayerPathVis : MonoBehaviour
         for (int i = 0; i < virtualBodies.Length; i++) {
             virtualBodies[i] = new VirtualBody (bodies[i], numSteps);
         }
-        SimulateBodies(numSteps - 1);
+        SimulateBodies(numSteps - 2);
     }
 
     void InitDictionary() {
@@ -81,7 +114,7 @@ public class PlayerPathVis : MonoBehaviour
         for (int step = 0; step < steps; step++) {
             // Update velocities
             for (int i = 0; i < virtualBodies.Length; i++) {
-                virtualBodies[i].velocity +=  CalculateAcceleration(i) * timeStep;
+                virtualBodies[i].velocity += CalculateAcceleration(i) * timeStep;
             }
             // Update positions
             for (int i = 0; i < virtualBodies.Length; i++) {
@@ -115,10 +148,11 @@ public class PlayerPathVis : MonoBehaviour
     }
 
     public void OriginShift(Vector3 offset) {
-        for (int i = 0; i < virtualBodies.Length; i++) {
-            for (int j = 0; j < virtualBodies[i].simluatedPositions.buffer.Length; j++) {
-                virtualBodies[i].simluatedPositions.buffer[j] -= offset;
+        for (int i = 0; i < numSteps; i++) {
+            for (int j = 0; j < virtualBodies.Length; j++) {
+                virtualBodies[j].simluatedPositions.buffer[i] -= offset;
             }
+            playerVirt.simluatedPositions.buffer[i] -= offset;
         }
     }
 
@@ -133,8 +167,16 @@ public class PlayerPathVis : MonoBehaviour
             mass = body.mass;
             id = body.GetInstanceID();
             simluatedPositions = new RingBuffer<Vector3>(numSteps);
+            // kind of hacky, to synchronize, so .get(0) is the same as the actual body AFTER the update
+            simluatedPositions.Add(body.transform.position);
             simluatedPositions.Add(body.transform.position);
             velocity = body.initialVelocity;
+        }
+
+        public VirtualBody (int numSteps) {
+            mass = -1;
+            id = -1;
+            simluatedPositions = new RingBuffer<Vector3>(numSteps);
         }
     }
 
@@ -165,6 +207,10 @@ public class PlayerPathVis : MonoBehaviour
                 throw new System.InvalidOperationException("RingBuffer is empty");
             }
             return Get(-1);
+        }
+
+        public bool isEmpty() {
+            return index == -1;
         }
     }
 

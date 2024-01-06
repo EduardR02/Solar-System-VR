@@ -31,6 +31,7 @@ public class Ship : GravityObject {
 	Quaternion lockedTargetRotation;
 	PlayerPathVis playerPathVis;
 	ParticleController[] ExhaustParticleSystems;
+	bool isColliding = false;
 
 	void Awake () {
 		InitRigidbody ();
@@ -151,6 +152,14 @@ public class Ship : GravityObject {
 		rb.velocity = velocity;
 	}
 
+	void OnCollisionEnter (Collision collision) {
+		isColliding = true;
+	}
+
+	void OnCollisionExit (Collision collision) {
+		isColliding = false;
+	}
+
 	public bool ShowHUD {
 		get {
 			// variable was called "ship is piloted", hud is turned off anyway so...
@@ -173,6 +182,14 @@ public class Ship : GravityObject {
 		get {
 			return referenceBody;
 		}
+	}
+
+	public void SetReferenceBody (CelestialBody body) {
+		referenceBody = body;
+	}
+
+	public bool IsColliding() {
+		return isColliding;
 	}
 
 }

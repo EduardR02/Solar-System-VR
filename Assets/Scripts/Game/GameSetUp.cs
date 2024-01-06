@@ -18,6 +18,7 @@ public class GameSetUp : MonoBehaviour {
 				Vector3 pointAbovePlanet = startBody.transform.position + Vector3.up * startBody.radius * 1.5f;
 				ship.Rigidbody.MovePosition(pointAbovePlanet + Vector3.up * 20);
 				ship.SetVelocity(startBody.initialVelocity);
+				ship.SetReferenceBody(startBody);
 			}
 		}
 	}

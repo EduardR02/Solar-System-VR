@@ -13,6 +13,7 @@ public class SolarSystemSpawner : MonoBehaviour {
 	public void Spawn (int seed) {
 
 		var sw = System.Diagnostics.Stopwatch.StartNew ();
+		Application.targetFrameRate = 120;
 
 		PRNG prng = new PRNG (seed);
 		CelestialBody[] bodies = FindObjectsOfType<CelestialBody> ();
