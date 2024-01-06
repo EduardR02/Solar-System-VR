@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Oculus.Interaction.Surfaces;
 using UnityEngine;
 
 /*
@@ -19,6 +20,7 @@ public class PlanetEffects : PostProcessingEffect {
 
 	List<Material> postProcessingMaterials;
 	bool active = true;
+	Plane[][] planes = new Plane[2][];
 
 	public override void Render (RenderTexture source, RenderTexture destination) {
 		List<Material> materials = GetMaterials ();
@@ -55,17 +57,19 @@ public class PlanetEffects : PostProcessingEffect {
 			Vector3 camPos = cam.transform.position;
 
 			SortFarToNear (camPos);
+			GetFrustumPlanes(cam);
 
 			for (int i = 0; i < effectHolders.Count; i++) {
 				EffectHolder effectHolder = effectHolders[i];
 				Material underwaterMaterial = null;
+				Vector3 planetCentre = effectHolder.generator.transform.position;
 				// Oceans
 				if (displayOceans) {
-					if (effectHolder.oceanEffect != null) {
+					if (effectHolder.oceanEffect != null && SphereInCameraFrustum (planetCentre, effectHolder.generator.GetOceanRadius())) {
 
 						effectHolder.oceanEffect.UpdateSettings (effectHolder.generator, oceanShader);
 
-						float camDstFromCentre = (camPos - effectHolder.generator.transform.position).magnitude;
+						float camDstFromCentre = (camPos - planetCentre).magnitude;
 						if (camDstFromCentre < effectHolder.generator.GetOceanRadius ()) {
 							underwaterMaterial = effectHolder.oceanEffect.GetMaterial ();
 						} else {
@@ -74,10 +78,11 @@ public class PlanetEffects : PostProcessingEffect {
 					}
 				}
 				// Atmospheres
+
 				if (displayAtmospheres) {
-					if (effectHolder.atmosphereEffect != null) {
+					if (effectHolder.atmosphereEffect != null  && SphereInCameraFrustum (planetCentre, effectHolder.generator.body.shading.atmosphereSettings.GetAtmosphereRadius(effectHolder.generator.BodyScale))) {
 						effectHolder.atmosphereEffect.UpdateSettings (effectHolder.generator);
-						postProcessingMaterials.Add (effectHolder.atmosphereEffect.GetMaterial ());
+						postProcessingMaterials.Add (effectHolder.atmosphereEffect.GetMaterial());
 					}
 				}
 
@@ -88,6 +93,24 @@ public class PlanetEffects : PostProcessingEffect {
 		}
 
 		return postProcessingMaterials;
+	}
+
+	bool SphereInCameraFrustum(Vector3 sphereCenter, float sphereRadius) {
+		Bounds bounds = new Bounds (sphereCenter, Vector3.one * sphereRadius * 2);
+		for (int i = 0; i < 2; i++) {
+			if (GeometryUtility.TestPlanesAABB(planes[i], bounds)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void GetFrustumPlanes(Camera cam) {
+		Matrix4x4[] worldToProjectionMatrix = new Matrix4x4[2];
+		worldToProjectionMatrix[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
+		worldToProjectionMatrix[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
+		planes[0] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[0]);
+		planes[1] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[1]);
 	}
 
 	float CalculateMaxClippingDst (Camera cam) {

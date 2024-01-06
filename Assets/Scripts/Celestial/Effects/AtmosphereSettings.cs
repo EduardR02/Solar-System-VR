@@ -96,4 +96,8 @@ public class AtmosphereSettings : ScriptableObject {
 	void OnValidate () {
 		settingsUpToDate = false;
 	}
+
+	public float GetAtmosphereRadius (float bodyRadius) {
+		return (1 + atmosphereScale) * bodyRadius;
+	}
 }
