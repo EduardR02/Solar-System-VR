@@ -9,14 +9,12 @@ public class Ship : GravityObject {
 	public float maxThrust = 50;
 	[Range (0, 1)]
 	public float groundingForce = 0.1f;
-	[Range (0, 1)]
-	public float groundingForceThresholdVelocity = 0.25f;
 	[Header ("Rotation")]
 	public float rotationSpeed = 1f;
 	[Tooltip ("Furthest distance from the planet where the player's feet will face the planet")]
-	public float rotationChangeOrientationDst = 200f;
+	public float rotationChangeOrientationRadiusFraction = 1f;
 	[Tooltip ("Furthest distance from the planet where the player will rotate to face the planet")]
-	public float maxRotationDistance = 2000f;
+	public float maxRotationDistanceRadiusFraction = 5f;
 
 	[Header ("Interact")]
 	public OVRInput.Controller leftController;
@@ -98,21 +96,17 @@ public class Ship : GravityObject {
 	}
 
 	bool IsGrounded() {
-		if (referenceBody) {
-			var relativeVelocity = rb.velocity - referenceBody.velocity;
-			return relativeVelocity.y <= (maxThrust * 2 * groundingForceThresholdVelocity);
-		}
-		return false;
+		return isColliding;
 	}
 
 	void SmoothRotation(Vector3 gravityUp, float dstToSurface) {
-		if (dstToSurface < rotationChangeOrientationDst) {
+		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction) {
 			// Smoothly rotate to align with gravity up (player feet are "down" so he can "stand")
 			Quaternion targetRotation = Quaternion.FromToRotation (rb.transform.up, gravityUp) * rb.rotation;
 			rb.rotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 			updateTargetRotation = true;
 		}
-		else if (dstToSurface < maxRotationDistance){
+		else if (dstToSurface < maxRotationDistanceRadiusFraction * referenceBody.radius){
 			// player is rotated to face the planet (you want to be looking forward when flying around, not down)
 			if (updateTargetRotation) {
 				// so it doesn't "follow" the planet after the initial rotation
