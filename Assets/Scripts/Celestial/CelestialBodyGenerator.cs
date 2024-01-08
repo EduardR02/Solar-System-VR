@@ -419,6 +419,16 @@ public class CelestialBodyGenerator : MonoBehaviour {
 		}
 	}
 
+	public Vector3[] GetMeshVertices (int lodIndex) {
+		return lodMeshes[lodIndex].vertices;
+	}
+
+	public bool MeshesAreGenerated {
+		get {
+			return lodMeshes != null;
+		}
+	}
+
 	public class TerrainData {
 		public float[] heights;
 		public Vector4[] uvs;
