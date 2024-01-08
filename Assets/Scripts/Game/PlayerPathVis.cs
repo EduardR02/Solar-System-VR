@@ -65,7 +65,7 @@ public class PlayerPathVis : MonoBehaviour
             return;
         }
         lineRenderer.enabled = true;
-        if (referenceBody != null) {
+        if (referenceBody != null && !playerVirt.simluatedPositions.isEmpty()) {
             Vector3 timeStepAdjust = Vector3.Lerp(playerVirt.simluatedPositions.Get(1), playerVirt.simluatedPositions.Get(2), PhysicsUpdateCounter / (float)PhysicsStepsPerSimUpdate);
             posDelta = player.transform.position - timeStepAdjust;
         }
@@ -166,7 +166,7 @@ public class PlayerPathVis : MonoBehaviour
             mass = body.mass;
             id = body.GetInstanceID();
             simluatedPositions = new RingBuffer<Vector3>(numSteps);
-            // kind of hacky, to synchronize, so .get(0) is the same as the actual body AFTER the update
+            // a bit crude to synchronize, so .get(0) is the same as the actual body AFTER the update
             simluatedPositions.Add(body.transform.position);
             simluatedPositions.Add(body.transform.position);
             velocity = body.initialVelocity;
