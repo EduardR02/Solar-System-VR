@@ -20,7 +20,7 @@ Shader "Unlit/Beacon Shader"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
+            #pragma multi_compile_instancing
             #include "UnityCG.cginc"
 
             struct appdata
@@ -28,6 +28,7 @@ Shader "Unlit/Beacon Shader"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
@@ -35,6 +36,8 @@ Shader "Unlit/Beacon Shader"
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
                 float3 normal : TEXCOORD1;
+                float phase : TEXCOORD2;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             sampler2D _MainTex;
@@ -47,11 +50,13 @@ Shader "Unlit/Beacon Shader"
             v2f vert (appdata v)
             {
                 v2f o;
+                UNITY_SETUP_INSTANCE_ID(v); //Insert
+				UNITY_INITIALIZE_OUTPUT(v2f, o); //Insert
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o); //Insert
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                //o.uv = v.uv;
-                float phase = _Time.y * _ScrollSpeed;
                 o.uv = v.uv;
                 o.normal = v.normal;
+                o.phase = _Time.y * _ScrollSpeed;
                 return o;
             }
 
@@ -59,9 +64,8 @@ Shader "Unlit/Beacon Shader"
             {
                 fixed4 col = lerp(0, 0.75, 1-i.uv.y) * _Color;
                 if (i.uv.y > _StartHeight) {
-                    float phase = _Time.y * _ScrollSpeed;
                     float adjustedSegments = _Segments / (1.0 - _StartHeight);
-                    float alphaFactor = frac(i.uv.y * adjustedSegments - phase);
+                    float alphaFactor = frac(i.uv.y * adjustedSegments - i.phase);
                     //float smoothAlpha = (sin(alphaFactor * 2.0 * 3.14159) + 1.0) / 2.0;
                     float smoothAlpha = step(0.5, alphaFactor);
                     col.a *= smoothAlpha;
