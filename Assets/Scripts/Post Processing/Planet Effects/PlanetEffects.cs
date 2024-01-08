@@ -24,10 +24,6 @@ public class PlanetEffects : PostProcessingEffect {
 
 	public override void Render (RenderTexture source, RenderTexture destination) {
 		List<Material> materials = GetMaterials ();
-		if (materials == null || materials.Count == 0) {
-			Graphics.Blit (source, destination);
-			return;
-		}
 		CustomPostProcessing.RenderMaterials (source, destination, materials);
 	}
 

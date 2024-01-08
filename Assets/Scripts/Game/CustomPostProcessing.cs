@@ -106,7 +106,8 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		// In case dest texture was not rendered into (due to being provided a null material), copy current src to dest
 		if (currentDestination != destination) {
-			Graphics.Blit (currentSource, destination, new Material (Shader.Find ("Unlit/Texture")));
+			// for some reason goes white screen if new Material (Shader.Find ("Unlit/Texture")) is used
+			Graphics.Blit (currentSource, destination);
 		}
 		// Release temporary textures
 		for (int i = 0; i < temporaryTextures.Count; i++) {
