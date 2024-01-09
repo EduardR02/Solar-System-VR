@@ -9,11 +9,13 @@ public class EndlessManager : MonoBehaviour {
     Ship ship;
     Camera playerCamera;
     StarTest starTest;
+    ParkourManager parkourManager;
     public event System.Action PostFloatingOriginUpdate;
 
     void Awake () {
         ship = FindObjectOfType<Ship> ();
         var bodies = FindObjectsOfType<CelestialBody> ();
+        parkourManager = FindObjectOfType<ParkourManager> ();
         physicsObjects = new List<CelestialBody>(bodies);
         playerCamera = Camera.main;
         starTest = FindObjectOfType<StarTest> ();
@@ -37,6 +39,7 @@ public class EndlessManager : MonoBehaviour {
             // so this works best by far!
             ship.UpdateOrigin(originOffset);
             starTest.UpdateOrigin(originOffset);
+            parkourManager.UpdateOrigin(originOffset);
             foreach (CelestialBody cb in physicsObjects) {
                 cb.UpdateOrigin(originOffset);
             }

@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3942613375915400479}
   - component: {fileID: 3942613375915400476}
   - component: {fileID: 7289187803586605874}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: ForestCoinParkour
   m_TagString: coin
   m_Icon: {fileID: 0}
@@ -53,7 +53,7 @@ MeshRenderer:
   m_GameObject: {fileID: 3942613375915498417}
   m_Enabled: 1
   m_CastShadows: 1
-  m_ReceiveShadows: 1
+  m_ReceiveShadows: 0
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
   m_MotionVectors: 1

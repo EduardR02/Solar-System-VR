@@ -26,6 +26,7 @@ public class ParkourManager : MonoBehaviour
     CelestialBody[] planets;
     Quaternion[] initialPlanetRotations;
     GameObject currentBeacon;
+    List<GameObject> TShapes = new List<GameObject>();
 
     void Start()
     {
@@ -38,7 +39,6 @@ public class ParkourManager : MonoBehaviour
         // don't include the sun or tiny moons
         planets = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
         initialPlanetRotations = new Quaternion[planets.Length];
-        Debug.Log("Found " + planets.Length + " planets");
         planetVertices = new Vector3[planets.Length][];
         int lowestResLod = 2;
         for (int i = 0; i < planets.Length; i++) {
@@ -97,9 +97,7 @@ public class ParkourManager : MonoBehaviour
         CelestialBodyGenerator generator = planet.GetComponentInChildren<CelestialBodyGenerator>();
         Vector3 randomPosition = planetVertices[planetIndex][Random.Range(0, planetVertices[planetIndex].Length)] * generator.BodyScale;
         // spawn the interaction challenge and a beacon here
-        Debug.Log( " ROTATION: " + initialPlanetRotations[planetIndex] + " RANDOM POSITION: " + randomPosition);
         Vector3 normal = randomPosition.normalized;
-        Debug.Log("RANDOMPOSITION NORMALIZED: " + normal);
         Quaternion planetRotationDelta = Quaternion.Inverse(initialPlanetRotations[planetIndex]) * planet.transform.rotation;
         Quaternion challengeRotation = Quaternion.FromToRotation(Vector3.up, normal);
         Vector3 challengePosition = randomPosition + normal * challengeSpawnHeight + planetPos;
@@ -109,18 +107,19 @@ public class ParkourManager : MonoBehaviour
         float beaconHeight = beaconHeightToPlanetRadiusRatio * generator.BodyScale;
         float beaconRadius = beaconHeight / 10;
         Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * radius;
-        offset.y += beaconHeight;
+        offset.y += beaconHeight;   // no idea why this is right, should be / 2 (because center is height/2), but this works exactly right...
         Vector3 beaconPosition = randomPosition + (challengeRotation * offset) + planetPos;
         // slightly different from challenge rotation because of displacement
         Quaternion beaconRotation = Quaternion.FromToRotation(Vector3.up, (beaconPosition - planetPos).normalized);
         GameObject challenge = Instantiate(interactionChallengePrefab, challengePosition, challengeRotation * planetRotationDelta);
         GameObject beacon = Instantiate(beaconPrefab, beaconPosition, beaconRotation * planetRotationDelta);
 
+        TShapes.Add(challenge);
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
-        GameObject interactionChallengeHolder = new GameObject("Interaction Challenge Holder");
-        interactionChallengeHolder.transform.SetParent(planet.transform);
-        challenge.transform.SetParent(interactionChallengeHolder.transform);
-        beacon.transform.SetParent(interactionChallengeHolder.transform);
+        planet.transform.SetParent(planet.transform);
+        challenge.transform.SetParent(planet.transform);
+        challenge.GetComponent<InteractionShape>().SetParentPlanet(planet);
+        beacon.transform.SetParent(planet.transform);
         challenge.name = "Interaction Challenge " + currentChallenge;
         beacon.name = "Beacon " + currentChallenge;
         currentBeacon = beacon;
@@ -129,5 +128,13 @@ public class ParkourManager : MonoBehaviour
     }
 
     void CompleteInteractionChallenge() {
+    }
+
+    public void UpdateOrigin(Vector3 originOffset) {
+        if (TShapes.Count > 0) {
+            foreach (GameObject tShape in TShapes) {
+                tShape.GetComponent<InteractionShape>().UpdateOrigin(originOffset);
+            }
+        }
     }
 }
