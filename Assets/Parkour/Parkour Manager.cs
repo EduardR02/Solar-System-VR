@@ -108,6 +108,7 @@ public class ParkourManager : MonoBehaviour
         float beaconRadius = beaconHeight / 10;
         Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * radius;
         offset.y += beaconHeight;   // no idea why this is right, should be / 2 (because center is height/2), but this works exactly right...
+        offset.y -= beaconHeight / 20; // to account for terrain, somewhat magic number so the beacon is always starting from "fully inside" the planet.
         Vector3 beaconPosition = randomPosition + (challengeRotation * offset) + planetPos;
         // slightly different from challenge rotation because of displacement
         Quaternion beaconRotation = Quaternion.FromToRotation(Vector3.up, (beaconPosition - planetPos).normalized);
@@ -116,11 +117,11 @@ public class ParkourManager : MonoBehaviour
 
         TShapes.Add(challenge);
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
-        planet.transform.SetParent(planet.transform);
-        challenge.transform.SetParent(planet.transform);
         challenge.GetComponent<InteractionShape>().SetParentPlanet(planet);
+        //challenge.transform.SetParent(planet.transform);  // would be nice for "structure", but because both have rigiboies this causes a bunch of weirdness, so just leave it
+        
         beacon.transform.SetParent(planet.transform);
-        challenge.name = "Interaction Challenge " + currentChallenge;
+        challenge.name = "Interaction Challenge " + currentChallenge + " on " + planet.name;
         beacon.name = "Beacon " + currentChallenge;
         currentBeacon = beacon;
 

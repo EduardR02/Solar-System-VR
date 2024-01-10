@@ -4,25 +4,31 @@ using UnityEngine;
 
 public class InteractionShape : MonoBehaviour
 {
-    private Rigidbody parentRigidbody;
     private Quaternion previousParentRotation;
     private Rigidbody rb;
     private CelestialBody parentPlanet;
+    private Rigidbody parentRigidbody;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.velocity = parentRigidbody.velocity;
+        parentRigidbody = parentPlanet.Rigidbody;
         previousParentRotation = parentRigidbody.rotation;
+        rb.rotation = Random.rotation;
     }
 
     void FixedUpdate()
     {
+        UpdatePosition();
+    }
+
+    void UpdatePosition() {
         Vector3 parentMovement = parentPlanet.velocity * Time.fixedDeltaTime;
         Quaternion parentRotation = parentRigidbody.rotation;
         Quaternion deltaRotation = Quaternion.Inverse(previousParentRotation) * parentRotation;
         Vector3 projectedRelativePosition = rb.position + parentMovement - parentRigidbody.position;
         Vector3 addedRotationMovement = deltaRotation * projectedRelativePosition - projectedRelativePosition;
+        // only thing that works rn is move position... , addForce just spirals out of control
         rb.MovePosition(parentMovement + addedRotationMovement + rb.position);
         previousParentRotation = parentRotation;
     }
@@ -32,7 +38,6 @@ public class InteractionShape : MonoBehaviour
     }
 
     public void SetParentPlanet(CelestialBody parentPlanet) {
-        parentRigidbody = parentPlanet.Rigidbody;
         this.parentPlanet = parentPlanet;
     }
 
