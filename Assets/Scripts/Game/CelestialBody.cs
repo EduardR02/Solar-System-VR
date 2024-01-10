@@ -10,6 +10,7 @@ public class CelestialBody : GravityObject {
     public float radius;
     public float surfaceGravity;
     public Vector3 initialVelocity;
+    public float rotationPerSecond = 90;
     public string bodyName = "Unnamed";
     Transform meshHolder;
 
@@ -27,6 +28,12 @@ public class CelestialBody : GravityObject {
         velocity = initialVelocity;
         rb.AddForce (initialVelocity, ForceMode.VelocityChange);
         RecalculateMass ();
+    }
+
+    void Update () {
+        if (Application.isPlaying) {
+            RotatePlanet ();
+        }
     }
 
     public void UpdateVelocity (Vector3 acceleration, float timeStep) {
@@ -53,6 +60,10 @@ public class CelestialBody : GravityObject {
 
     public void UpdateOrigin (Vector3 originOffset) {
         rb.position -= originOffset;
+    }
+
+    public void RotatePlanet() {
+        rb.MoveRotation(rb.rotation * Quaternion.Euler(0, rotationPerSecond * Time.deltaTime, 0));
     }
 
     public Rigidbody Rigidbody {
