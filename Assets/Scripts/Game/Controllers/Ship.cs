@@ -1,14 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Playables;
+using UnityEngine.UIElements;
 
 public class Ship : GravityObject {
 
 	[Header ("Handling")]
 	public float maxThrust = 50;
-	[Range (0, 1)]
-	public float groundingForce = 0.1f;
+	public float groundingForce = 5f;
 	[Header ("Rotation")]
 	public float rotationSpeed = 1f;
 	[Tooltip ("Furthest distance from the planet where the player's feet will face the planet")]
@@ -86,7 +85,7 @@ public class Ship : GravityObject {
 		}
 		if (closestBody != referenceBody) {
 			referenceBody = closestBody;
-			if (referenceBody.bodyType != CelestialBody.BodyType.Moon) {
+			if (referenceBody.bodyType == CelestialBody.BodyType.Planet) {
 				// rotate don't "rerotate" to face moons, too weird/confusing
 				updateTargetRotation = true;
 			}
@@ -103,7 +102,16 @@ public class Ship : GravityObject {
 		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction) {
 			// Smoothly rotate to align with gravity up (player feet are "down" so he can "stand")
 			Quaternion targetRotation = Quaternion.FromToRotation (rb.transform.up, gravityUp) * rb.rotation;
-			rb.rotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+			targetRotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+			// if standing on the surface, rotate with the planet
+			Quaternion delta = Quaternion.AngleAxis(referenceBody.rotationPerSecondDeg * Time.deltaTime, referenceBody.transform.up);
+			rb.MoveRotation(delta * targetRotation);
+			/*
+				// for whatever reason, this code is not working... so i will just cheat using grounding force probably
+				Vector3 relPos = rb.position - referenceBody.Rigidbody.position;
+				relPos = delta * relPos - relPos;
+				rb.AddForce(relPos*100, ForceMode.Acceleration);
+			*/
 			updateTargetRotation = true;
 		}
 		else if (dstToSurface < maxRotationDistanceRadiusFraction * referenceBody.radius){

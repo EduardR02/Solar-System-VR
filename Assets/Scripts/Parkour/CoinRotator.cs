@@ -14,6 +14,6 @@ public class CoinRotator : MonoBehaviour
     void Update()
     {
         // rotate self around y axis accounting for time
-        transform.Rotate(0, degPerSec * Time.deltaTime, 0);
+        transform.Rotate(0, degPerSec * Time.deltaTime, 0, Space.Self);
     }
 }

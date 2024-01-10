@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor.UI;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -10,7 +11,7 @@ public class CelestialBody : GravityObject {
     public float radius;
     public float surfaceGravity;
     public Vector3 initialVelocity;
-    public float rotationPerSecond = 90;
+    public float rotationPerSecondDeg = 5;
     public string bodyName = "Unnamed";
     Transform meshHolder;
 
@@ -30,7 +31,7 @@ public class CelestialBody : GravityObject {
         RecalculateMass ();
     }
 
-    void Update () {
+    void FixedUpdate () {
         if (Application.isPlaying) {
             RotatePlanet ();
         }
@@ -63,7 +64,7 @@ public class CelestialBody : GravityObject {
     }
 
     public void RotatePlanet() {
-        rb.MoveRotation(rb.rotation * Quaternion.Euler(0, rotationPerSecond * Time.deltaTime, 0));
+        rb.MoveRotation(Quaternion.AngleAxis(rotationPerSecondDeg * Time.deltaTime, transform.up) * rb.rotation);
     }
 
     public Rigidbody Rigidbody {
