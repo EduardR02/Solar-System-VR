@@ -21,20 +21,34 @@ public class ParkourManager : MonoBehaviour
     public float beaconOuterRadius = 5f;
     public float beaconHeightToPlanetRadiusRatio = 2f;
 
-    private int currentChallenge;
+    private int currentChallenge = 0;
     private int coinsCollected = 0;
     private Vector3[][] planetVertices;
 
     CelestialBody[] planets;
     Quaternion[] initialPlanetRotations;
+    Ship player;
     GameObject currentBeacon;
-    List<GameObject> TShapes = new List<GameObject>();
+    GameObject currentTShape;
+    GameObject currentTTarget;
     private float challengeScaleMult = 5f;
+    private float minDistanceToComplete = 100f;
+    private int currentPlanetIndex = -1;
+    private float taskStartTime;
 
     void Start()
     {
+        player = FindObjectOfType<Ship>();
         InitPlanets();
         GenerateInteractionChallenge();
+    }
+
+    void Update()
+    {
+        // A button
+        if (OVRInput.GetDown(OVRInput.Button.One)) {
+            CompleteInteractionChallenge();
+        }
     }
 
     void InitPlanets() {
@@ -58,15 +72,6 @@ public class ParkourManager : MonoBehaviour
         return vertices.Where(vertex => Vector3.Distance(vertex, oceanCenter) > oceanRadius).ToArray();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        // if i press the A button on the meta quest 3 vr controller, the interaction challenge is completed
-        if (OVRInput.GetDown(OVRInput.Button.One)) {
-            CompleteInteractionChallenge();
-        }
-    }
-
     void GenerateCoinsAroundPlanet(CelestialBody planet) {
         if (coinsPerChallenge <= 0) {
             return;
@@ -88,13 +93,15 @@ public class ParkourManager : MonoBehaviour
             Vector3 coinPosition = planetCenter + Quaternion.AngleAxis(angle, planetUp) * directionVector;
             GameObject coin = Instantiate(coinPrefab, coinPosition, Quaternion.FromToRotation(Vector3.up, planetUp));
             coin.name = "Coin " + i;
+            coin.transform.localScale = Vector3.one * generator.BodyScale / 10;
             coin.transform.SetParent(coinParent.transform);
             angle += angleIncrement;
         }
     }
 
     void GenerateInteractionChallenge() {
-        int planetIndex = Random.Range(0, planets.Length);
+        currentChallenge++;
+        int planetIndex = GenerateRandomPlanetIndex();
         CelestialBody planet = planets[planetIndex];
         Vector3 planetPos = planet.transform.position;
         CelestialBodyGenerator generator = planet.GetComponentInChildren<CelestialBodyGenerator>();
@@ -115,14 +122,14 @@ public class ParkourManager : MonoBehaviour
         Vector3 beaconPosition = randomPosition + (challengeRotation * offset) + planetPos;
         // slightly different from challenge rotation because of displacement
         Quaternion beaconRotation = Quaternion.FromToRotation(Vector3.up, (beaconPosition - planetPos).normalized);
-        GameObject challenge = Instantiate(interactionChallengePrefab, challengePosition, challengeRotation * planetRotationDelta);
+        GameObject challenge = Instantiate(interactionChallengePrefab, challengePosition, Random.rotation);
         GameObject box = Instantiate(intercationChallengeBoundingBoxPrefab, challengePosition, challengeRotation * planetRotationDelta);
         GameObject beacon = Instantiate(beaconPrefab, beaconPosition, beaconRotation * planetRotationDelta);
-        Vector3 targetPosition = challengePosition + challengeRotation * (new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * challengeScaleMult * 0.5f);
+        Vector3 targetPosition = challengePosition + (0.5f * challengeScaleMult * new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f));
         GameObject target = Instantiate(interactionTargetPrefab, targetPosition, Random.rotation);
         GameObject interactionChallenge = new GameObject("Interaction Challenge " + currentChallenge);
 
-        TShapes.Add(challenge);
+        currentTShape = challenge;
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
         challenge.transform.localScale = Vector3.one * challengeScaleMult;
         target.transform.localScale = Vector3.one * challengeScaleMult;
@@ -141,17 +148,53 @@ public class ParkourManager : MonoBehaviour
         target.name = "Target";
         currentBeacon = beacon;
 
+        taskStartTime = Time.time;
+
         GenerateCoinsAroundPlanet(planet);
     }
 
     void CompleteInteractionChallenge() {
+        if (currentTShape == null) {
+            return;
+        }
+        if ((player.Rigidbody.position - currentTShape.GetComponent<Rigidbody>().position).sqrMagnitude < minDistanceToComplete * minDistanceToComplete) {
+            return;
+        }
+        LockCurrentChallenge();
+        UpdateChallengeMetrics();
+        GenerateInteractionChallenge();
+    }
+
+    int GenerateRandomPlanetIndex() {
+        int index = Random.Range(0, planets.Length);
+        while (index == currentPlanetIndex) {
+            index = Random.Range(0, planets.Length);
+        }
+        currentPlanetIndex = index;
+        return index;
+    }
+
+    void LockCurrentChallenge() {
+        if (currentBeacon != null) {
+            Destroy(currentBeacon);
+        }
+        currentTShape.GetComponent<InteractionShape>().LockChallenge();
+    }
+
+    void UpdateChallengeMetrics() {
+        Vector3 manipulationError = Vector3.zero;
+        for (int i = 0; i < currentTTarget.transform.childCount; i++)
+        {
+            manipulationError += currentTTarget.transform.GetChild(i).transform.position - currentTShape.transform.GetChild(i).transform.position;
+        }
+        // keep error consistent across any scale
+        manipulationError /= challengeScaleMult;
+        float time = Time.time - taskStartTime;
     }
 
     public void UpdateOrigin(Vector3 originOffset) {
-        if (TShapes.Count > 0) {
-            foreach (GameObject tShape in TShapes) {
-                tShape.GetComponent<InteractionShape>().UpdateOrigin(originOffset);
-            }
+        if (currentTShape != null) {
+            currentTShape.GetComponent<InteractionShape>().UpdateOrigin(originOffset);
         }
     }
 }

@@ -9,6 +9,7 @@ public class InteractionShape : MonoBehaviour
     private Rigidbody parentRigidbody;
     Vector3 prevRotationalVelocity = Vector3.zero;
     Vector3 prevParentVelocity = Vector3.zero;
+    private bool locked = false;
 
     void Start()
     {
@@ -18,6 +19,9 @@ public class InteractionShape : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (locked) {
+            return;
+        }
         UpdatePosition();
         RotateWithPlanet();
     }
@@ -36,7 +40,18 @@ public class InteractionShape : MonoBehaviour
         rb.MoveRotation(Quaternion.AngleAxis(parentPlanet.rotationPerSecondDeg * Time.deltaTime, parentPlanet.transform.up) * rb.rotation);
     }
 
+    public void LockChallenge() {
+        // remove the rigidbody and parent it to the planet
+        Destroy(rb);
+        gameObject.name = "Completed " + gameObject.name;
+        transform.SetParent(parentPlanet.transform);
+        locked = true;
+    }
+
     public void UpdateOrigin(Vector3 originOffset) {
+        if (locked) {
+            return;
+        }
         Rigidbody.position -= originOffset;
     }
 

@@ -9,12 +9,13 @@ This is for a University project.
 
 
 ## Planned Changes
-- Add coins to collect
-- Add interaction technique
+- Optimize...
 - Add nice Vignette
 - Might add simple "walking" and rotation using controller joystick
 ## Made Changes
 - Shaders work with Multi View rendering
+- Add interaction technique
+- Add coins to collect
 - Faster paced planet configuration
 - More planets
 - Auto rotate planets into camera view
@@ -23,5 +24,5 @@ This is for a University project.
 - Projected player path line
 - VR cam with interactors
 - Particles as "booster exhaust"
-- New planets that look differents
+- New planets that look different
 
