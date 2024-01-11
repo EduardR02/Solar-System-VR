@@ -4,16 +4,16 @@ using UnityEngine;
 
 public class InteractionShape : MonoBehaviour
 {
-    private Quaternion previousParentRotation;
     private Rigidbody rb;
     private CelestialBody parentPlanet;
     private Rigidbody parentRigidbody;
+    Vector3 prevRotationalVelocity = Vector3.zero;
+    Vector3 prevParentVelocity = Vector3.zero;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         parentRigidbody = parentPlanet.Rigidbody;
-        previousParentRotation = parentRigidbody.rotation;
         rb.rotation = Random.rotation;
     }
 
@@ -23,14 +23,12 @@ public class InteractionShape : MonoBehaviour
     }
 
     void UpdatePosition() {
-        Vector3 parentMovement = parentPlanet.velocity * Time.fixedDeltaTime;
-        Quaternion parentRotation = parentRigidbody.rotation;
-        Quaternion deltaRotation = Quaternion.Inverse(previousParentRotation) * parentRotation;
-        Vector3 projectedRelativePosition = rb.position + parentMovement - parentRigidbody.position;
-        Vector3 addedRotationMovement = deltaRotation * projectedRelativePosition - projectedRelativePosition;
+        Vector3 projectedRelativePosition = rb.position + parentPlanet.velocity * Time.fixedDeltaTime - parentRigidbody.position;
+        Vector3 v = Vector3.Cross(parentRigidbody.angularVelocity, projectedRelativePosition);
         // only thing that works rn is move position... , addForce just spirals out of control
-        rb.MovePosition(parentMovement + addedRotationMovement + rb.position);
-        previousParentRotation = parentRotation;
+        rb.AddForce(parentPlanet.velocity - prevParentVelocity + v - prevRotationalVelocity, ForceMode.VelocityChange);
+        prevRotationalVelocity = v;
+        prevParentVelocity = parentPlanet.velocity;
     }
 
     public void UpdateOrigin(Vector3 originOffset) {
