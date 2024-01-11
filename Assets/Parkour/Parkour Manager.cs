@@ -117,6 +117,7 @@ public class ParkourManager : MonoBehaviour
 
         TShapes.Add(challenge);
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
+        challenge.transform.localScale = Vector3.one * 5f;
         challenge.GetComponent<InteractionShape>().SetParentPlanet(planet);
         //challenge.transform.SetParent(planet.transform);  // would be nice for "structure", but because both have rigiboies this causes a bunch of weirdness, so just leave it
         
