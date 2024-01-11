@@ -98,7 +98,7 @@ public class Ship : GravityObject {
 	}
 
 	void SmoothRotation(Vector3 gravityUp, float dstToSurface) {
-		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction*0.4f) {
+		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction) {
 			// Smoothly rotate to align with gravity up (player feet are "down" so he can "stand")
 			Quaternion targetRotation = Quaternion.FromToRotation (rb.transform.up, gravityUp) * rb.rotation;
 			targetRotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
