@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Ship : GravityObject {
 
@@ -29,6 +28,7 @@ public class Ship : GravityObject {
 	PlayerPathVis playerPathVis;
 	ParticleController[] ExhaustParticleSystems;
 	bool isColliding = false;
+	Vector3 lastPlanetRotationVelocity = Vector3.zero;
 
 	void Awake () {
 		InitRigidbody ();
@@ -46,7 +46,6 @@ public class Ship : GravityObject {
 
 	void FixedUpdate () {
 		GravityForce();
-		GroundingForce();
 		ThrusterMovement();
 	}
 
@@ -99,19 +98,21 @@ public class Ship : GravityObject {
 	}
 
 	void SmoothRotation(Vector3 gravityUp, float dstToSurface) {
-		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction) {
+		if (dstToSurface < referenceBody.radius * rotationChangeOrientationRadiusFraction*0.4f) {
 			// Smoothly rotate to align with gravity up (player feet are "down" so he can "stand")
 			Quaternion targetRotation = Quaternion.FromToRotation (rb.transform.up, gravityUp) * rb.rotation;
 			targetRotation = Quaternion.Slerp (rb.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-			// if standing on the surface, rotate with the planet
-			Quaternion delta = Quaternion.AngleAxis(referenceBody.rotationPerSecondDeg * Time.deltaTime, referenceBody.transform.up);
-			rb.MoveRotation(delta * targetRotation);
-			/*
-				// for whatever reason, this code is not working... so i will just cheat using grounding force probably
-				Vector3 relPos = rb.position - referenceBody.Rigidbody.position;
-				relPos = delta * relPos - relPos;
-				rb.AddForce(relPos*100, ForceMode.Acceleration);
-			*/
+			// if standing on the surface, rotate with the planet. Calculates the velocity always, because you want to
+			// compensate for delta velocity when you touch the surface
+			// v = r * w
+			Vector3 v = Vector3.Cross(referenceBody.Rigidbody.angularVelocity, rb.position - referenceBody.Rigidbody.position);
+			if (isColliding) {
+				rb.AddForce(v - lastPlanetRotationVelocity, ForceMode.VelocityChange);
+				Quaternion delta = Quaternion.AngleAxis(referenceBody.rotationPerSecondDeg * Time.deltaTime, referenceBody.transform.up);
+				targetRotation = delta * targetRotation;
+			}
+			lastPlanetRotationVelocity = v;
+			rb.MoveRotation(targetRotation);
 			updateTargetRotation = true;
 		}
 		else if (dstToSurface < maxRotationDistanceRadiusFraction * referenceBody.radius){
@@ -125,6 +126,7 @@ public class Ship : GravityObject {
 		}
 		else {
 			updateTargetRotation = true;
+			lastPlanetRotationVelocity = Vector3.zero;
 		}
 	}
 
