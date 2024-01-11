@@ -7,6 +7,8 @@ public class ParkourManager : MonoBehaviour
 {
     public GameObject coinPrefab;
     public GameObject interactionChallengePrefab;
+    public GameObject intercationChallengeBoundingBoxPrefab;
+    public GameObject interactionTargetPrefab;
     public GameObject beaconPrefab;
     public int interactionChallenges = 3;
     public int coinsPerChallenge = 10;
@@ -27,6 +29,7 @@ public class ParkourManager : MonoBehaviour
     Quaternion[] initialPlanetRotations;
     GameObject currentBeacon;
     List<GameObject> TShapes = new List<GameObject>();
+    private float challengeScaleMult = 5f;
 
     void Start()
     {
@@ -113,17 +116,29 @@ public class ParkourManager : MonoBehaviour
         // slightly different from challenge rotation because of displacement
         Quaternion beaconRotation = Quaternion.FromToRotation(Vector3.up, (beaconPosition - planetPos).normalized);
         GameObject challenge = Instantiate(interactionChallengePrefab, challengePosition, challengeRotation * planetRotationDelta);
+        GameObject box = Instantiate(intercationChallengeBoundingBoxPrefab, challengePosition, challengeRotation * planetRotationDelta);
         GameObject beacon = Instantiate(beaconPrefab, beaconPosition, beaconRotation * planetRotationDelta);
+        Vector3 targetPosition = challengePosition + challengeRotation * (new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f) * challengeScaleMult * 0.5f);
+        GameObject target = Instantiate(interactionTargetPrefab, targetPosition, Random.rotation);
+        GameObject interactionChallenge = new GameObject("Interaction Challenge " + currentChallenge);
 
         TShapes.Add(challenge);
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
-        challenge.transform.localScale = Vector3.one * 5f;
+        challenge.transform.localScale = Vector3.one * challengeScaleMult;
+        target.transform.localScale = Vector3.one * challengeScaleMult;
+        box.transform.localScale = Vector3.one * challengeScaleMult;
+
         challenge.GetComponent<InteractionShape>().SetParentPlanet(planet);
-        //challenge.transform.SetParent(planet.transform);  // would be nice for "structure", but because both have rigiboies this causes a bunch of weirdness, so just leave it
-        
-        beacon.transform.SetParent(planet.transform);
+
+        box.transform.SetParent(interactionChallenge.transform);
+        beacon.transform.SetParent(interactionChallenge.transform);
+        target.transform.SetParent(interactionChallenge.transform);
+        interactionChallenge.transform.SetParent(planet.transform);
+
         challenge.name = "Interaction Challenge " + currentChallenge + " on " + planet.name;
-        beacon.name = "Beacon " + currentChallenge;
+        beacon.name = "Beacon";
+        box.name = "Bounding Box";
+        target.name = "Target";
         currentBeacon = beacon;
 
         GenerateCoinsAroundPlanet(planet);
