@@ -5,8 +5,6 @@ using UnityEngine;
 public class CustomPostProcessing : MonoBehaviour {
 
 	public PostProcessingEffect[] effects;
-	Shader defaultShader;
-	Material defaultMat;
 	List<RenderTexture> temporaryTextures = new List<RenderTexture> ();
 	Camera cam;
 	public bool debugOceanMask;
@@ -17,10 +15,6 @@ public class CustomPostProcessing : MonoBehaviour {
 	public static Vector4[] _eyePosition = new Vector4[2];
 
 	void Init () {
-		if (defaultShader == null) {
-			defaultShader = Shader.Find ("Unlit/Texture");
-		}
-		defaultMat = new Material (defaultShader);
 		cam = Camera.main;
 	}
 
@@ -60,7 +54,7 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		// In case dest texture was not rendered into (due to being provided a null effect), copy current src to dest
 		if (currentDestination != finalDestination) {
-			Graphics.Blit (currentSource, finalDestination, defaultMat);
+			Graphics.Blit (currentSource, finalDestination);
 		}
 
 		// Release temporary textures
@@ -69,7 +63,7 @@ public class CustomPostProcessing : MonoBehaviour {
 		}
 
 		if (debugOceanMask) {
-			Graphics.Blit (FindObjectOfType<OceanMaskRenderer> ().oceanMaskTexture, finalDestination, defaultMat);
+			Graphics.Blit (FindObjectOfType<OceanMaskRenderer> ().oceanMaskTexture, finalDestination);
 		}
 
 		// Trigger post processing complete event
