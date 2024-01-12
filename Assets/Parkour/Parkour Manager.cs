@@ -20,6 +20,7 @@ public class ParkourManager : MonoBehaviour
     public float beaconInnerRadius = 3f;
     public float beaconOuterRadius = 5f;
     public float beaconHeightToPlanetRadiusRatio = 2f;
+    public List<ChallengeMetrics> challengeMetrics = new List<ChallengeMetrics>();
 
     private int currentChallenge = 0;
     private int coinsCollected = 0;
@@ -162,6 +163,10 @@ public class ParkourManager : MonoBehaviour
         }
         LockCurrentChallenge();
         UpdateChallengeMetrics();
+        if (currentChallenge >= interactionChallenges) {
+            Debug.Log("End of task");
+            return;
+        }
         GenerateInteractionChallenge();
     }
 
@@ -190,11 +195,25 @@ public class ParkourManager : MonoBehaviour
         // keep error consistent across any scale
         manipulationError /= challengeScaleMult;
         float time = Time.time - taskStartTime;
+        challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, challengeScaleMult));
     }
 
     public void UpdateOrigin(Vector3 originOffset) {
         if (currentTShape != null) {
             currentTShape.GetComponent<InteractionShape>().UpdateOrigin(originOffset);
+        }
+    }
+
+
+    public struct ChallengeMetrics {
+        public float time;
+        public Vector3 manipulationError;
+        public float scale;
+        
+        public ChallengeMetrics(float time, Vector3 manipulationError, float scale) {
+            this.time = time;
+            this.manipulationError = manipulationError;
+            this.scale = scale;
         }
     }
 }
