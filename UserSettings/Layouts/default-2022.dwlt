@@ -19,7 +19,7 @@ MonoBehaviour:
     width: 2558
     height: 1351
   m_ShowMode: 4
-  m_Title: Project
+  m_Title: Hierarchy
   m_RootView: {fileID: 2}
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
@@ -120,7 +120,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 148
+  controlID: 151
 --- !u!114 &6
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -165,8 +165,8 @@ MonoBehaviour:
     y: 0
     width: 1599
     height: 572
-  m_MinSize: {x: 201, y: 221}
-  m_MaxSize: {x: 4001, y: 4021}
+  m_MinSize: {x: 200, y: 200}
+  m_MaxSize: {x: 4000, y: 4000}
   m_ActualView: {fileID: 14}
   m_Panes:
   - {fileID: 14}
@@ -760,9 +760,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: 4523.3213, y: -341.22086, z: -413.68982}
+    m_Target: {x: 3520.2314, y: 593.66406, z: 2078.295}
     speed: 2
-    m_Value: {x: 4523.3213, y: -341.22086, z: -413.68982}
+    m_Value: {x: 3520.2314, y: 593.66406, z: 2078.295}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -808,13 +808,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: 0.05496713, y: -0.13438416, z: 0.0074654603, w: 0.9893876}
+    m_Target: {x: 0.21277478, y: -0.027842842, z: 0.0060658236, w: 0.97669846}
     speed: 2
-    m_Value: {x: 0.05495521, y: -0.13586645, z: 0.007547812, w: 0.989173}
+    m_Value: {x: 0.21277212, y: -0.027842494, z: 0.0060657477, w: 0.97668624}
   m_Size:
-    m_Target: 2.0640702
+    m_Target: 16150.189
     speed: 2
-    m_Value: 2.0640702
+    m_Value: 16150.189
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -912,20 +912,20 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 58920400
-      m_LastClickedID: 0
-      m_ExpandedIDs: b439fbff1e3afbff424bfbffa450fbff4252fbff446ffbffae6ffbffd46ffbfff870fbff5677fbffda7bfbff447cfbff6a7cfbff967dfbff6e82fbff0694fbff2cccfbff8cf0ffff90f0ffffa8f0ffff2cfbffff245f00003c5f0000585f000080610000c2610000f66100000c620000
+      m_SelectedIDs: 1e610000
+      m_LastClickedID: 24862
+      m_ExpandedIDs: 2cfbffff1e6000008a610000
       m_RenameOverlay:
         m_UserAcceptedRename: 0
-        m_Name: Cube (2)
-        m_OriginalName: Cube (2)
+        m_Name: Game UI
+        m_OriginalName: Game UI
         m_EditFieldRect:
           serializedVersion: 2
           x: 0
           y: 0
           width: 0
           height: 0
-        m_UserData: -302948
+        m_UserData: 24412
         m_IsWaitingForDelay: 0
         m_IsRenaming: 0
         m_OriginalEventType: 0
@@ -984,7 +984,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Prefabs
+    - Packages/com.unity.ugui/Runtime/EventSystem
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
@@ -992,16 +992,16 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 39
   m_LastFolders:
-  - Assets/Prefabs
+  - Packages/com.unity.ugui/Runtime/EventSystem
   m_LastFoldersGridSize: 39
   m_LastProjectPath: C:\Users\Eduard\UnityProjects\Solar-System - Copy
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 48}
-    m_SelectedIDs: 0e770000
-    m_LastClickedID: 30478
-    m_ExpandedIDs: 00000000a4760000a6760000a8760000aa760000ac760000ae760000b0760000b2760000b4760000b676000014770000207700002277000000ca9a3b
+    scrollPos: {x: 0, y: 512}
+    m_SelectedIDs: dc770000
+    m_LastClickedID: 30684
+    m_ExpandedIDs: 00000000127700001477000016770000187700001a7700001c7700001e7700002077000022770000247700005e77000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1029,7 +1029,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 00000000a4760000a6760000a8760000aa760000ac760000ae760000b0760000b2760000b4760000b6760000
+    m_ExpandedIDs: 00000000127700001477000016770000187700001a7700001c7700001e770000207700002277000024770000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 

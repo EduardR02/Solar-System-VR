@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7309896164815342255}
   - component: {fileID: 6479893101214351998}
   - component: {fileID: 8847111429476431741}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -117,7 +117,7 @@ GameObject:
   - component: {fileID: 372201346521359025}
   - component: {fileID: 1306903884227203558}
   - component: {fileID: 6418782256795037581}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -222,7 +222,7 @@ GameObject:
   - component: {fileID: 2854839576354787440}
   - component: {fileID: 9082960952139562335}
   - component: {fileID: 1271419353043969662}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -324,7 +324,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1967300060844464960}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Interaction Challenge Box
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -364,7 +364,7 @@ GameObject:
   - component: {fileID: 8473831617818617863}
   - component: {fileID: 4099092501905119404}
   - component: {fileID: 2370693686809521170}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (5)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -469,7 +469,7 @@ GameObject:
   - component: {fileID: 7218481229268713486}
   - component: {fileID: 4970217678343575576}
   - component: {fileID: 3115049436822234860}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -574,7 +574,7 @@ GameObject:
   - component: {fileID: 5145444972331160000}
   - component: {fileID: 2592816736226500930}
   - component: {fileID: 1679005068011296078}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}

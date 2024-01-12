@@ -23,7 +23,7 @@ public class ParkourManager : MonoBehaviour
     public List<ChallengeMetrics> challengeMetrics = new List<ChallengeMetrics>();
 
     private int currentChallenge = 0;
-    private int coinsCollected = 0;
+    public static int coinsCollected = 0;
     private Vector3[][] planetVertices;
 
     CelestialBody[] planets;
@@ -202,6 +202,11 @@ public class ParkourManager : MonoBehaviour
         if (currentTShape != null) {
             currentTShape.GetComponent<InteractionShape>().UpdateOrigin(originOffset);
         }
+    }
+
+    // a bit eh, but whatever
+    public static void IncrementCoinCount() {
+        coinsCollected++;
     }
 
 
