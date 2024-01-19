@@ -12,11 +12,10 @@ public class Coin : MonoBehaviour
         transform.Rotate(0, degPerSec * Time.deltaTime, 0, Space.Self);
     }
 
-    void OnCollisionEnter(Collision collision) {
+    void OnTriggerEnter(Collider other) {
         // layer 9 is Ship, which includes the player hitbox and the booster exhaust particles
-        if (collision.gameObject.layer == 9) {
+        if (other.gameObject.layer == 9) {
             ParkourManager.IncrementCoinCount();
-            Debug.Log("Coin collected!");
             Destroy(gameObject);
         }
     }
