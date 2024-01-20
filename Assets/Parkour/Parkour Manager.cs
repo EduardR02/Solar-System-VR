@@ -58,19 +58,19 @@ public class ParkourManager : MonoBehaviour
         planets = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
         initialPlanetRotations = new Quaternion[planets.Length];
         planetVertices = new Vector3[planets.Length][];
-        int lowestResLod = 2;
+        int LodRes = 0;
         for (int i = 0; i < planets.Length; i++) {
             CelestialBodyGenerator generator = planets[i].GetComponentInChildren<CelestialBodyGenerator>();
-            planetVertices[i] = generator.GetMeshVertices(lowestResLod);
+            planetVertices[i] = generator.GetMeshVertices(LodRes);
             if (generator.GetOceanRadius() > 0) {
-                planetVertices[i] = GetVerticesAboveOcean(planets[i].transform.position, generator.GetOceanRadius(), planetVertices[i]);
+                planetVertices[i] = GetVerticesAboveOcean(generator.GetOceanRadius() / generator.BodyScale, planetVertices[i]);
             }
             initialPlanetRotations[i] = planets[i].transform.rotation;
         }
     }
 
-    Vector3[] GetVerticesAboveOcean(Vector3 oceanCenter, float oceanRadius, Vector3[] vertices) {
-        return vertices.Where(vertex => Vector3.Distance(vertex, oceanCenter) > oceanRadius).ToArray();
+    Vector3[] GetVerticesAboveOcean(float oceanRadius, Vector3[] vertices) {
+        return vertices.Where(vertex => vertex.sqrMagnitude > oceanRadius * oceanRadius).ToArray();
     }
 
     void GenerateCoinsAroundPlanet(CelestialBody planet) {
@@ -131,6 +131,7 @@ public class ParkourManager : MonoBehaviour
         GameObject interactionChallenge = new GameObject("Interaction Challenge " + currentChallenge);
 
         currentTShape = challenge;
+        currentTTarget = target;
         beacon.transform.localScale = new Vector3(beaconRadius, beaconHeight, beaconRadius);
         challenge.transform.localScale = Vector3.one * challengeScaleMult;
         target.transform.localScale = Vector3.one * challengeScaleMult;
@@ -196,6 +197,7 @@ public class ParkourManager : MonoBehaviour
         manipulationError /= challengeScaleMult;
         float time = Time.time - taskStartTime;
         challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, challengeScaleMult));
+        Debug.Log("Challenge " + currentChallenge + " metrics: " + challengeMetrics.Last());
     }
 
     public void UpdateOrigin(Vector3 originOffset) {
@@ -219,6 +221,10 @@ public class ParkourManager : MonoBehaviour
             this.time = time;
             this.manipulationError = manipulationError;
             this.scale = scale;
+        }
+
+        public override string ToString() {
+            return "Time: " + time + ", Error: " + manipulationError + ", Scale: " + scale;
         }
     }
 }
