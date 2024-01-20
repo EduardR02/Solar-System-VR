@@ -158,7 +158,7 @@ public class ParkourManager : MonoBehaviour
         if (currentTShape == null) {
             return;
         }
-        if ((player.Rigidbody.position - currentTShape.GetComponent<Rigidbody>().position).sqrMagnitude < minDistanceToComplete * minDistanceToComplete) {
+        if ((player.Rigidbody.position - currentTShape.GetComponent<Rigidbody>().position).sqrMagnitude > minDistanceToComplete * minDistanceToComplete) {
             return;
         }
         LockCurrentChallenge();
