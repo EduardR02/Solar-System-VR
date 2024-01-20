@@ -72,7 +72,7 @@ public class Ship : GravityObject {
 		foreach (CelestialBody body in bodies) {
 			float sqrDistance = (body.Position - rb.position).sqrMagnitude;
 			Vector3 forceDir = (body.Position - rb.position).normalized;
-			Vector3 acceleration = forceDir * Universe.gravitationalConstant * body.mass / sqrDistance;
+			Vector3 acceleration = body.playerGravityMultiplier * forceDir * Universe.gravitationalConstant * body.mass / sqrDistance;
 			cumulativeAcceleration += acceleration;
 			float dstToSurface = Mathf.Sqrt(sqrDistance) - body.radius;
 			// Find closest planet

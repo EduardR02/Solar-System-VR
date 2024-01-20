@@ -141,7 +141,7 @@ public class PlayerPathVis : MonoBehaviour
         for (int j = 0; j < virtualBodies.Length; j++) {
             Vector3 forceDir = (virtualBodies[j].simluatedPositions.Get(step) - point).normalized;
             float sqrDst = (virtualBodies[j].simluatedPositions.Get(step) - point).sqrMagnitude;
-            acceleration += forceDir * Universe.gravitationalConstant * virtualBodies[j].mass / sqrDst;
+            acceleration += virtualBodies[j].playerGravityMultiplier * forceDir * Universe.gravitationalConstant * virtualBodies[j].mass / sqrDst;
         }
         return acceleration;
     }
@@ -158,6 +158,7 @@ public class PlayerPathVis : MonoBehaviour
     class VirtualBody {
         public float mass;
         public int id;
+        public float playerGravityMultiplier;
         public Vector3 velocity;
         public RingBuffer<Vector3> simluatedPositions;
 
@@ -170,6 +171,7 @@ public class PlayerPathVis : MonoBehaviour
             simluatedPositions.Add(body.transform.position);
             simluatedPositions.Add(body.transform.position);
             velocity = body.initialVelocity;
+            playerGravityMultiplier = body.playerGravityMultiplier;
         }
 
         public VirtualBody (int numSteps) {

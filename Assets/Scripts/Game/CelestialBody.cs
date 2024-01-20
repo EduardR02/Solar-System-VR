@@ -7,6 +7,7 @@ public class CelestialBody : GravityObject {
 
     public enum BodyType { Planet, Moon, Sun }
     public BodyType bodyType;
+    public float playerGravityMultiplier = 1f;
     public float radius;
     public float surfaceGravity;
     public Vector3 initialVelocity;
