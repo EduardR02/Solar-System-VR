@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class ParkourManager : MonoBehaviour
 {
@@ -49,6 +50,9 @@ public class ParkourManager : MonoBehaviour
         // A button
         if (OVRInput.GetDown(OVRInput.Button.One)) {
             CompleteInteractionChallenge();
+        }
+        if (currentChallenge >= interactionChallenges && taskStartTime + 10 < Time.time) {
+            SceneManager.LoadScene("Menu Room");
         }
     }
 
@@ -156,7 +160,7 @@ public class ParkourManager : MonoBehaviour
     }
 
     void CompleteInteractionChallenge() {
-        if (currentTShape == null) {
+        if (currentTShape == null && currentChallenge >= interactionChallenges) {
             return;
         }
         if ((player.Rigidbody.position - currentTShape.GetComponent<Rigidbody>().position).sqrMagnitude > minDistanceToComplete * minDistanceToComplete) {
@@ -166,6 +170,7 @@ public class ParkourManager : MonoBehaviour
         UpdateChallengeMetrics();
         if (currentChallenge >= interactionChallenges) {
             Debug.Log("End of task");
+            taskStartTime = Time.time;
             return;
         }
         GenerateInteractionChallenge();

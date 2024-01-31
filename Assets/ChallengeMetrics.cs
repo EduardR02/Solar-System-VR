@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ChallengeMetrics: MonoBehaviour {
+public struct ChallengeMetrics {
     public float time;
     public Vector3 manipulationError;
     public int coins_collected;
