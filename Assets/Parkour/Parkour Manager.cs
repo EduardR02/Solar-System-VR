@@ -196,8 +196,25 @@ public class ParkourManager : MonoBehaviour
         // keep error consistent across any scale
         manipulationError /= challengeScaleMult;
         float time = Time.time - taskStartTime;
-        challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, challengeScaleMult));
-        Debug.Log("Challenge " + currentChallenge + " metrics: " + challengeMetrics.Last());
+        int score = CalculateScore(time, manipulationError, coinsCollected);
+        challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, coinsCollected, score));
+        if (currentChallenge >= interactionChallenges) {
+            ChallengeMetrics current_run = new ChallengeMetrics(challengeMetrics);
+            current_run.SaveRun("last");
+            challengeMetrics.Clear();
+        }
+    }
+
+    int CalculateScore(float time, Vector3 manipulationError, int coinsCollected) {
+        // lets say 5 mins is max score per challenge
+        int score = 5 * 60;
+        // coins add to score
+        score += coinsCollected * 10;
+        // time subtracts from score
+        score -= (int) time;
+        // manipulation error modifies score, with zero error the score stays the same, with error more than 1 the score is 0
+        score = (int) (score * Mathf.Max(1 - manipulationError.magnitude, 0));
+        return score;
     }
 
     public void UpdateOrigin(Vector3 originOffset) {
@@ -209,22 +226,5 @@ public class ParkourManager : MonoBehaviour
     // a bit eh, but whatever
     public static void IncrementCoinCount() {
         coinsCollected++;
-    }
-
-
-    public struct ChallengeMetrics {
-        public float time;
-        public Vector3 manipulationError;
-        public float scale;
-        
-        public ChallengeMetrics(float time, Vector3 manipulationError, float scale) {
-            this.time = time;
-            this.manipulationError = manipulationError;
-            this.scale = scale;
-        }
-
-        public override string ToString() {
-            return "Time: " + time + ", Error: " + manipulationError + ", Scale: " + scale;
-        }
     }
 }
