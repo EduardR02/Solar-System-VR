@@ -8,9 +8,6 @@ public class StartButton : MonoBehaviour
 {
     public TextMeshProUGUI buttonText;
     bool loading = false;
-    void OnTriggerEnter(Collider other) {
-        LoadScene(other.gameObject);
-    }
 
     void OnParticleCollision(GameObject other) {
         LoadScene(other);
@@ -25,7 +22,19 @@ public class StartButton : MonoBehaviour
         if (!loading && other.layer == 9) {
             loading = true;
             buttonText.text = "Loading...";
-            SceneManager.LoadSceneAsync("Solar System");
+            StartCoroutine(LoadAsyncScene());
+        }
+    }
+
+    IEnumerator LoadAsyncScene()
+    {
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Solar System");
+
+        asyncLoad.allowSceneActivation = true;
+
+        while (!asyncLoad.isDone)
+        {
+            yield return null;
         }
     }
 
