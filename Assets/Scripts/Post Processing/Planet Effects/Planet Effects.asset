@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   oceanShader: {fileID: 4800000, guid: d03ae1df4c5324c888d341830e3620ad, type: 3}
   atmosphereShader: {fileID: 4800000, guid: e5c9adc680af74e8fb0b8d63fb518c0a, type: 3}
-  displayOceans: 1
+  displayOceans: 0
   displayAtmospheres: 0
