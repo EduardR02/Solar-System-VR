@@ -85,10 +85,6 @@ public class Ship : GravityObject {
 		}
 		if (closestBody != referenceBody) {
 			referenceBody = closestBody;
-			if (referenceBody.bodyType == CelestialBody.BodyType.Planet) {
-				// rotate don't "rerotate" to face moons, too weird/confusing
-				updateTargetRotation = true;
-			}
 		}
 		rb.AddForce (cumulativeAcceleration, ForceMode.Acceleration);
 		SmoothRotation (-gravityOfNearestBody.normalized, nearestSurfaceDst);
@@ -126,7 +122,6 @@ public class Ship : GravityObject {
 			rb.rotation = Quaternion.Slerp (rb.rotation,  lockedTargetRotation, rotationSpeed * Time.deltaTime);
 		}
 		else {
-			updateTargetRotation = true;
 			lastPlanetRotationVelocity = Vector3.zero;
 		}
 	}

@@ -37,6 +37,7 @@ public class ParkourManager : MonoBehaviour
     private float minDistanceToComplete = 100f;
     private int currentPlanetIndex = -1;
     private float taskStartTime;
+    bool completed = false;
 
     void Start()
     {
@@ -51,7 +52,7 @@ public class ParkourManager : MonoBehaviour
         if (OVRInput.GetDown(OVRInput.Button.One)) {
             CompleteInteractionChallenge();
         }
-        if (currentChallenge > interactionChallenges && taskStartTime + 10 < Time.time) {
+        if (completed && taskStartTime + 10 < Time.time) {
             SceneManager.LoadScene("Menu Room", LoadSceneMode.Single);
         }
     }
@@ -173,6 +174,7 @@ public class ParkourManager : MonoBehaviour
             taskStartTime = Time.time;
             // once the challenge is completed, the player gets "sucked into" the sun for fun
             IncreaseSunGravity();
+            completed = true;
             return;
         }
         GenerateInteractionChallenge();

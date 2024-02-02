@@ -119,10 +119,14 @@ public class CustomPostProcessing : MonoBehaviour {
         _eyeProjection[1] = GL.GetGPUProjectionMatrix(_eyeProjection[1], true).inverse;
         
 		var api = SystemInfo.graphicsDeviceType;
-		if (api == UnityEngine.Rendering.GraphicsDeviceType.Vulkan){
-			_eyeProjection[0][1, 1] *= -1f;
-			_eyeProjection[1][1, 1] *= -1f;
-		}
+			if (
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES2 &&
+				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore
+			){
+				_eyeProjection[0][1, 1] *= -1f;
+				_eyeProjection[1][1, 1] *= -1f;
+			}
 		_eyeToWorld[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
 		_eyeToWorld[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
 	
