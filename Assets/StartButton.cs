@@ -28,7 +28,7 @@ public class StartButton : MonoBehaviour
 
     IEnumerator LoadAsyncScene()
     {
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Solar System");
+        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync("Solar System", LoadSceneMode.Single);
 
         asyncLoad.allowSceneActivation = true;
 

@@ -51,8 +51,8 @@ public class ParkourManager : MonoBehaviour
         if (OVRInput.GetDown(OVRInput.Button.One)) {
             CompleteInteractionChallenge();
         }
-        if (currentChallenge >= interactionChallenges && taskStartTime + 10 < Time.time) {
-            SceneManager.LoadScene("Menu Room");
+        if (currentChallenge > interactionChallenges && taskStartTime + 10 < Time.time) {
+            SceneManager.LoadScene("Menu Room", LoadSceneMode.Single);
         }
     }
 
@@ -171,9 +171,16 @@ public class ParkourManager : MonoBehaviour
         if (currentChallenge >= interactionChallenges) {
             Debug.Log("End of task");
             taskStartTime = Time.time;
+            // once the challenge is completed, the player gets "sucked into" the sun for fun
+            IncreaseSunGravity();
             return;
         }
         GenerateInteractionChallenge();
+    }
+
+    void IncreaseSunGravity() {
+        CelestialBody sun = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Sun).First();
+        sun.playerGravityMultiplier *= 10;
     }
 
     int GenerateRandomPlanetIndex() {

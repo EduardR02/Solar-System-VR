@@ -92,7 +92,7 @@
 				fixed4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, i.uvST);
 				float3 rayPos = _WorldSpaceEyePos[unity_StereoEyeIndex].xyz;
 				float viewLength = length(i.viewVector[unity_StereoEyeIndex]);
-				float3 rayDir = i.viewVector[unity_StereoEyeIndex] / viewLength;
+				float3 rayDir = normalize(i.viewVector[unity_StereoEyeIndex]);
 
 				float nonlin_depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uvST);
             	float sceneDepth = LinearEyeDepth(nonlin_depth) * viewLength;

@@ -18,6 +18,7 @@ public class CelestialBody : GravityObject {
     public Vector3 velocity { get; private set;}
     public float mass { get; private set; }
     Rigidbody rb;
+    float playerGravityMultiplierInitial;
 
     void Awake () {
 
@@ -29,6 +30,7 @@ public class CelestialBody : GravityObject {
         velocity = initialVelocity;
         rb.AddForce (initialVelocity, ForceMode.VelocityChange);
         RecalculateMass ();
+        playerGravityMultiplierInitial = playerGravityMultiplier;
     }
 
     void FixedUpdate () {
@@ -65,6 +67,10 @@ public class CelestialBody : GravityObject {
 
     public void RotatePlanet() {
         rb.MoveRotation(Quaternion.AngleAxis(rotationPerSecondDeg * Time.deltaTime, transform.up) * rb.rotation);
+    }
+
+    void OnDestroy() {
+        playerGravityMultiplier = playerGravityMultiplierInitial;
     }
 
     public Rigidbody Rigidbody {

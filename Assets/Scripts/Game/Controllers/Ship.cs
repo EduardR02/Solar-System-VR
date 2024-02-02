@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Ship : GravityObject {
 
@@ -158,6 +159,11 @@ public class Ship : GravityObject {
 
 	void OnCollisionEnter (Collision collision) {
 		isColliding = true;
+		// if the player collides with the sun, they "die", and get reset to the menu scene
+		// layer 11 is the sun
+		if (collision.gameObject.layer == 11) {
+			SceneManager.LoadScene("Menu Room", LoadSceneMode.Single);
+		}
 	}
 
 	void OnCollisionExit (Collision collision) {
