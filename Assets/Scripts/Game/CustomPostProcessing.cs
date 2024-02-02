@@ -118,23 +118,14 @@ public class CustomPostProcessing : MonoBehaviour {
         _eyeProjection[0] = GL.GetGPUProjectionMatrix(_eyeProjection[0], true).inverse;
         _eyeProjection[1] = GL.GetGPUProjectionMatrix(_eyeProjection[1], true).inverse;
         
-        #if (!UNITY_STANDALONE_OSX && !UNITY_ANDROID) || UNITY_EDITOR_WIN 
-			var api = SystemInfo.graphicsDeviceType;
-			if (
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES2 &&
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore &&
-				api != UnityEngine.Rendering.GraphicsDeviceType.Vulkan
-			){
-				_eyeProjection[0][1, 1] *= -1f;
-				_eyeProjection[1][1, 1] *= -1f;
-			}
-		#endif
-        
-		/// material.SetMatrixArray(_propEyeProjection, _eyeProjection);
-
+		var api = SystemInfo.graphicsDeviceType;
+		if (api == UnityEngine.Rendering.GraphicsDeviceType.Vulkan){
+			_eyeProjection[0][1, 1] *= -1f;
+			_eyeProjection[1][1, 1] *= -1f;
+		}
 		_eyeToWorld[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
 		_eyeToWorld[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
+	
 		// remove translational part of the matrix so that we don't have to do it every time in the shader
 		for (int i = 0; i < 2; i++) {
 			_eyeToWorld[i].m03 = 0;

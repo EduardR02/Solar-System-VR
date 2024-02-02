@@ -180,7 +180,7 @@ public class ParkourManager : MonoBehaviour
 
     void IncreaseSunGravity() {
         CelestialBody sun = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Sun).First();
-        sun.playerGravityMultiplier *= 10;
+        sun.playerGravityMultiplier *= 5;
     }
 
     int GenerateRandomPlanetIndex() {

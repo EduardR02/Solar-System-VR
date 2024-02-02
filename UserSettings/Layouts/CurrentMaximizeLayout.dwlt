@@ -25,7 +25,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 24267
+  controlID: 26421
 --- !u!114 &2
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -47,8 +47,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 2561
-    y: 834
+    x: 0
+    y: 772
     width: 1597
     height: 534
   m_SerializedDataModeController:
@@ -94,7 +94,7 @@ MonoBehaviour:
     m_HSlider: 0
     m_VSlider: 0
     m_IgnoreScrollWheelUntilClicked: 0
-    m_EnableMouseInput: 1
+    m_EnableMouseInput: 0
     m_EnableSliderZoomHorizontal: 0
     m_EnableSliderZoomVertical: 0
     m_UniformScale: 1
@@ -149,7 +149,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 24140
+  controlID: 26291
 --- !u!114 &4
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -169,8 +169,8 @@ MonoBehaviour:
     y: 0
     width: 1598
     height: 753
-  m_MinSize: {x: 101, y: 121}
-  m_MaxSize: {x: 4001, y: 4021}
+  m_MinSize: {x: 100, y: 100}
+  m_MaxSize: {x: 4000, y: 4000}
   m_ActualView: {fileID: 5}
   m_Panes:
   - {fileID: 5}
@@ -685,7 +685,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 24208
+  controlID: 26362
 --- !u!114 &9
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -752,7 +752,7 @@ MonoBehaviour:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: 04eafcff7ceafcff20f5fcff56fafcffa00bfdff1a0cfdfffa16fdff841cfdff3631fdffb031fdff9a3cfdffd441fdff42b1fdff4eb1fdff70c5fdffeed3fdff50d4fdfff4defdff2ae4fdffe6fafdff46fbfdff1206feff9c0bfeffee2afeff502bfeff1636feff503bfeffb04dfeff0e4efeffb658fefff45dfeffee6efeff4c6ffefff079feff2c7ffeff7c96feffda96feff82a1feffc2a6feff76abfeff76adfeff92adfeff9eb7feff0ebafeffd4bafeffd8bafefff0bafeff98bffeffaac9feff4edafeffacdafeffaee9feff78f3feff7c06ffffda06ffffd815ffff9e1fffff8430ffffe430ffffc640ffff8c4affff225cffff825cffff866cffff5076ffffde99ffff349affff1aaaffffe4b3ffffa4d0fffffad0ffff22e1ffff48ebffffc6f2ffff2cfbffff605f0000f2600000e26100001462000036620000527e00009e7e0000ee7e00007280000088800000b480000068820000ea820000f28300004c840000f484000032880000b0880000028900004a890000028c000088aa000074ac000070ae000040af000088c700006ecb0000eccb00003ecc00003ecd0000e43d0100283e0100763e0100aa3f0100bc3f010048410100bc410100884201003a43010036460100bc460100fc4801008e5d01001a5e01001e610100986201002e64010096640100da640100b6650100466701008a6a0100926d0100287301007e870100c687010070880100fe970100f69801003e990100e8990100149a0100ec9b01009e9c010028a90100d8a901008aaa0100d2aa01007cab0100e4ac010032ae010092cd010042ce0100f4ce01003ccf0100e6cf010012d001004ed10100ead101009cd20100400c02006611020092110200ae120200d8120200041302001c130200224b02008070020064740200de74020032750200
+      m_ExpandedIDs: 46d9fbffa4d9fbff5ce4fbffa4e9fbffbcf0fbff12f1fbff64f3fbffd6f7fbff0af9fbff86fefbffd20cfcff300dfcfff617fcff301dfcffbc1ffcffc01ffcffd61ffcff9024fcfffa7efcff587ffcff1e8afcff588ffcff3893fcffb498fcff5aa7fcffb8a7fcff7ab2fcffb0b7fcff9abefcff9ebefcffb4befcff12bffcff04eafcff7ceafcff20f5fcff56fafcffa00bfdff1a0cfdfffa16fdff841cfdff3631fdffb031fdff9a3cfdffd441fdff42b1fdff4eb1fdff70c5fdffeed3fdff50d4fdfff4defdff2ae4fdffe6fafdff46fbfdff1206feff9c0bfeffee2afeff502bfeff1636feff503bfeffb04dfeff0e4efeffb658fefff45dfeffee6efeff4c6ffefff079feff2c7ffeff7c96feffda96feff82a1feffc2a6feff76abfeff76adfeff92adfeff9eb7feff0ebafeffd4bafeffd8bafefff0bafeff98bffeffaac9feff4edafeffacdafeffaee9feff78f3feff7c06ffffda06ffffd815ffff9e1fffff8430ffffe430ffffc640ffff8c4affff225cffff825cffff866cffff5076ffffde99ffff349affff1aaaffffe4b3ffffa4d0fffffad0ffff22e1ffff48ebffffc6f2ffff2cfbffff605f0000f2600000e26100001462000036620000527e00009e7e0000ee7e00007280000088800000b480000068820000ea820000f28300004c840000f484000032880000b0880000028900004a890000028c000088aa000074ac000070ae000040af000088c700006ecb0000eccb00003ecc00003ecd0000e43d0100283e0100763e0100aa3f0100bc3f010048410100bc410100884201003a43010036460100bc460100fc4801008e5d01001a5e01001e610100986201002e64010096640100da640100b6650100466701008a6a0100926d0100287301007e870100c687010070880100fe970100f69801003e990100e8990100149a0100ec9b01009e9c010028a90100d8a901008aaa0100d2aa01007cab0100e4ac010032ae010092cd010042ce0100f4ce01003ccf0100e6cf010012d001004ed10100ead101009cd20100400c02006611020092110200ae120200d8120200041302001c130200224b0200807002008c7002003071020064740200de740200327502007e800200a6800200f6900200cc9202006a95020092950200d4950200b4a30200f8a602004aa70200a6a7020020a80200ea160300f6160300d41a0300501b03006c1b0300ba1f0300e21f03002e36030070360300503703007837030080370300463b0300883b0300704b0300
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -848,7 +848,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Prefabs
+    - Assets/Graphics/Materials/Colours
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
@@ -856,16 +856,16 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 39
   m_LastFolders:
-  - Assets/Prefabs
+  - Assets/Graphics/Materials/Colours
   m_LastFoldersGridSize: 39
   m_LastProjectPath: C:\Users\Eduard\UnityProjects\Eduard Rantsevich Solar-System
     1
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 8c770000
-    m_LastClickedID: 30604
+    scrollPos: {x: 0, y: 319}
+    m_SelectedIDs: 7c770000
+    m_LastClickedID: 30588
     m_ExpandedIDs: 000000002c7700002e77000030770000327700003477000036770000387700003a7700003c7700003e7700004077000042770000447700004677000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -919,9 +919,9 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs: 44730200
-    m_LastClickedInstanceID: 160580
-    m_HadKeyboardFocusLastEvent: 0
+    m_SelectedInstanceIDs: ae480300
+    m_LastClickedInstanceID: 215214
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: c6230000c45e00004c67000000000000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -946,7 +946,7 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
     m_NewAssetIndexInList: -1
-    m_ScrollPosition: {x: 0, y: 0}
+    m_ScrollPosition: {x: 0, y: 560.5}
     m_GridSize: 39
   m_SkipHiddenPackages: 0
   m_DirectoriesAreaWidth: 239
@@ -969,8 +969,8 @@ MonoBehaviour:
     y: 0
     width: 590
     height: 1308
-  m_MinSize: {x: 276, y: 71}
-  m_MaxSize: {x: 4001, y: 4021}
+  m_MinSize: {x: 275, y: 50}
+  m_MaxSize: {x: 4000, y: 4000}
   m_ActualView: {fileID: 14}
   m_Panes:
   - {fileID: 14}
@@ -1017,7 +1017,7 @@ MonoBehaviour:
     m_CachedPref: -213
     m_ControlHash: -371814159
     m_PrefName: Preview_InspectorPreview
-  m_LastInspectedObjectInstanceID: 160580
+  m_LastInspectedObjectInstanceID: 215214
   m_LastVerticalScrollValue: 0
   m_GlobalObjectId: 
   m_InspectorMode: 0
