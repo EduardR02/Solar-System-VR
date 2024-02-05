@@ -58,7 +58,14 @@ public class ParkourManager : MonoBehaviour
     }
 
     void InitPlanets() {
-        Random.InitState(randomSeed);
+        if (randomSeed < 0) {
+            int seed = System.Environment.TickCount;
+            Random.InitState(seed);
+            Debug.Log("Random seed: " + seed);
+        }
+        else {
+            Random.InitState(randomSeed);
+        }
         // don't include the sun or tiny moons
         planets = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
         initialPlanetRotations = new Quaternion[planets.Length];
@@ -115,6 +122,8 @@ public class ParkourManager : MonoBehaviour
         // spawn the interaction challenge and a beacon here
         Vector3 normal = randomPosition.normalized;
         Quaternion planetRotationDelta = Quaternion.Inverse(initialPlanetRotations[planetIndex]) * planet.transform.rotation;
+        normal = planetRotationDelta * normal;
+        randomPosition = planetRotationDelta * randomPosition;
         Quaternion challengeRotation = Quaternion.FromToRotation(Vector3.up, normal);
         Vector3 challengePosition = randomPosition + normal * challengeSpawnHeight + planetPos;
         // spawn beacon randomly in donut around challenge position

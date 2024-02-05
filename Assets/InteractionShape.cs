@@ -29,7 +29,6 @@ public class InteractionShape : MonoBehaviour
     void UpdatePosition() {
         Vector3 projectedRelativePosition = rb.position - parentRigidbody.position;
         Vector3 v = Vector3.Cross(parentRigidbody.angularVelocity, projectedRelativePosition);
-        // only thing that works rn is move position... , addForce just spirals out of control
         rb.AddForce(parentPlanet.velocity - prevParentVelocity + v - prevRotationalVelocity, ForceMode.VelocityChange);
         prevRotationalVelocity = v;
         prevParentVelocity = parentPlanet.velocity;
