@@ -24,7 +24,10 @@ public class ParticleController : MonoBehaviour
     {
         if (controller == OVRInput.Controller.LTouch || controller == OVRInput.Controller.RTouch)
         {
+            // to make the interaction challenge nicer, the Hand trigger will shoot particles, but not trigger player movement
             float TriggerVal = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, controller);
+            TriggerVal = Mathf.Max(TriggerVal, OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, controller));
+            TriggerVal = Mathf.Clamp01(TriggerVal);
             if (TriggerVal > 0.0f) {
                 var main = particles.main;
                 main.startLifetime = maxLifetime * (minLifetimePercent + (1.0f - minLifetimePercent) * TriggerVal);
