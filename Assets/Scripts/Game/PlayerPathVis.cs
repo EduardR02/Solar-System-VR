@@ -8,6 +8,7 @@ public class PlayerPathVis : MonoBehaviour
     [Tooltip("Number of steps to simulate using the physics timestep")]
     public int numSteps = 500;
     public int PhysicsStepsPerSimUpdate = 5;
+    public bool accountForPlanetRotation = true;
     private int PhysicsUpdateCounter = 0;
     private float timeStep;
     private Ship player;
@@ -51,10 +52,16 @@ public class PlayerPathVis : MonoBehaviour
         }
         Vector3 offset = player.transform.position - playerVirt.simluatedPositions.Get(0);
         VirtualBody referenceVirtualBody = virtualBodies[bodyIDToIndex[referenceBody.GetInstanceID()]];
+        Vector3 rotationOffset = Vector3.zero;
+        Vector3 playerToPlanetOffset = playerVirt.simluatedPositions.Get(0) - referenceVirtualBody.simluatedPositions.Get(0);
+        bool addRotationOffset = playerToPlanetOffset.magnitude < referenceBody.radius * (1 + player.rotationChangeOrientationRadiusFraction);
         lineRenderer.SetPosition(0, playerVirt.simluatedPositions.Get(0) + offset);
         for (int i = 1; i < numSteps; i++) {
             Vector3 planetOffset = referenceVirtualBody.simluatedPositions.Get(0) - referenceVirtualBody.simluatedPositions.Get(i);
-            lineRenderer.SetPosition(i, playerVirt.simluatedPositions.Get(i) + offset + planetOffset);
+            if (accountForPlanetRotation && addRotationOffset) {
+                rotationOffset -= Vector3.Cross(referenceBody.Rigidbody.angularVelocity, playerVirt.simluatedPositions.Get(i) - referenceVirtualBody.simluatedPositions.Get(i)) * timeStep;
+            }
+            lineRenderer.SetPosition(i, playerVirt.simluatedPositions.Get(i) + offset + planetOffset + rotationOffset);
         }
        
     }
