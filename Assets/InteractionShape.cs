@@ -15,6 +15,8 @@ public class InteractionShape : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         parentRigidbody = parentPlanet.Rigidbody;
+        UpdatePosition();
+        RotateWithPlanet();
     }
 
     void FixedUpdate()

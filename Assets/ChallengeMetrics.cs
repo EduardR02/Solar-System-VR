@@ -33,21 +33,22 @@ public struct ChallengeMetrics {
     }
 
     public ChallengeMetrics(List<ChallengeMetrics> challenges) {
-        this.time = 0;
-        this.manipulationError = Vector3.zero;
-        this.coins_collected = 0;
-        this.score = 0;
+        time = 0;
+        manipulationError = Vector3.zero;
+        coins_collected = 0;
+        score = 0;
         this.challenges = 0;
         foreach (ChallengeMetrics challenge in challenges) {
-            this.time += challenge.time;
-            this.manipulationError += challenge.manipulationError;
-            this.coins_collected += challenge.coins_collected;
-            this.score += challenge.score;
+            time += challenge.time;
+            manipulationError += challenge.manipulationError;
+            coins_collected += challenge.coins_collected;
+            score += challenge.score;
             this.challenges += challenge.challenges;
         }
         if (challenges.Count != 0) {
-            this.manipulationError /= challenges.Count;
+            manipulationError /= challenges.Count;
         }
+        Debug.Log("coins collected: " + coins_collected);
     }
 
     public void SaveRun(string prefix = "last") {
@@ -76,12 +77,12 @@ public struct ChallengeMetrics {
         // takes the old saved average, then calculates a moving average with the new run, then saves it
         ChallengeMetrics avg = new ChallengeMetrics("avg");
         int total_runs = PlayerPrefs.GetInt("total_runs", 1);
-        avg.time = (avg.time * (total_runs - 1) + this.time) / total_runs;
-        avg.manipulationError = (avg.manipulationError * (total_runs - 1) + this.manipulationError) / total_runs;
-        avg.coins_collected = (avg.coins_collected * (total_runs - 1) + this.coins_collected) / total_runs;
-        avg.score = (avg.score * (total_runs - 1) + this.score) / total_runs;
+        avg.time = (avg.time * (total_runs - 1) + time) / total_runs;
+        avg.manipulationError = (avg.manipulationError * (total_runs - 1) + manipulationError) / total_runs;
+        avg.coins_collected = (avg.coins_collected * (total_runs - 1) + coins_collected) / total_runs;
+        avg.score = (avg.score * (total_runs - 1) + score) / total_runs;
         // i just realized this doesnt even work properly because challenge is an int, but whatever
-        avg.challenges = (avg.challenges * (total_runs - 1) + this.challenges) / total_runs;
+        avg.challenges = (avg.challenges * (total_runs - 1) + challenges) / total_runs;
         avg.SaveRun("avg");
     }
 

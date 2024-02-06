@@ -138,7 +138,7 @@ public class ParkourManager : MonoBehaviour
         // slightly different from challenge rotation because of displacement
         Quaternion beaconRotation = Quaternion.FromToRotation(Vector3.up, (beaconPosition - planetPos).normalized);
         GameObject challenge = Instantiate(interactionChallengePrefab, challengePosition, Random.rotation);
-        GameObject box = Instantiate(intercationChallengeBoundingBoxPrefab, challengePosition, challengeRotation * planetRotationDelta);
+        GameObject box = Instantiate(intercationChallengeBoundingBoxPrefab, challengePosition, challengeRotation);
         GameObject beacon = Instantiate(beaconPrefab, beaconPosition, beaconRotation * planetRotationDelta);
         Vector3 targetPosition = challengePosition + (0.5f * challengeScaleMult * new Vector3(Random.value - 0.5f, Random.value - 0.5f, Random.value - 0.5f));
         GameObject target = Instantiate(interactionTargetPrefab, targetPosition, Random.rotation);
@@ -219,20 +219,24 @@ public class ParkourManager : MonoBehaviour
         // keep error consistent across any scale
         manipulationError /= challengeScaleMult;
         float time = Time.time - taskStartTime;
-        int score = CalculateScore(time, manipulationError, coinsCollected);
-        challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, coinsCollected, score));
+        int challengeCoins = coinsCollected;
+        int score = CalculateScore(time, manipulationError, challengeCoins);
+        challengeMetrics.Add(new ChallengeMetrics(time, manipulationError, challengeCoins, score));
         if (currentChallenge >= interactionChallenges) {
             ChallengeMetrics current_run = new ChallengeMetrics(challengeMetrics);
             current_run.SaveRun("last");
             challengeMetrics.Clear();
         }
+        Debug.Log("Challenge " + currentChallenge + " completed in " + time + " seconds with " + challengeCoins);
+        coinsCollected = 0;
+        Debug.Log("Coins collected after reset: " + coinsCollected);
     }
 
-    int CalculateScore(float time, Vector3 manipulationError, int coinsCollected) {
+    int CalculateScore(float time, Vector3 manipulationError, int collectedCoins) {
         // lets say 5 mins is max score per challenge
         int score = 5 * 60;
         // coins add to score
-        score += coinsCollected * 10;
+        score += collectedCoins * 10;
         // time subtracts from score
         score -= (int) time;
         // manipulation error modifies score, with zero error the score stays the same, with error more than 1 the score is 0

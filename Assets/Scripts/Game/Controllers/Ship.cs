@@ -30,6 +30,7 @@ public class Ship : GravityObject {
 	ParticleController[] ExhaustParticleSystems;
 	bool isColliding = false;
 	Vector3 lastPlanetRotationVelocity = Vector3.zero;
+	public Transform cameraRigTransform;
 
 	void Awake () {
 		InitRigidbody ();
@@ -116,7 +117,7 @@ public class Ship : GravityObject {
 			// player is rotated to face the planet (you want to be looking forward when flying around, not down)
 			if (updateTargetRotation) {
 				// so it doesn't "follow" the planet after the initial rotation
-				lockedTargetRotation = Quaternion.FromToRotation (cam.transform.forward, -gravityUp) * rb.rotation;
+				lockedTargetRotation = Quaternion.LookRotation(cam.transform.forward, gravityUp);
 				updateTargetRotation = false;
 			}
 			rb.rotation = Quaternion.Slerp (rb.rotation,  lockedTargetRotation, rotationSpeed * Time.deltaTime);
