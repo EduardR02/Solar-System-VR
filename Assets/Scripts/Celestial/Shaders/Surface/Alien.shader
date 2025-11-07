@@ -50,6 +50,7 @@
 		// Physically based Standard lighting model, and enable shadows on all light types
 		#pragma surface surf Standard fullforwardshadows vertex:vert
 		#pragma target 3.5
+		#pragma multi_compile_instancing
 
 		#include "../Includes/Triplanar.cginc"
 		#include "../Includes/Math.cginc"

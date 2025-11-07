@@ -9,7 +9,7 @@ public class GameSetUp : MonoBehaviour {
 	public CelestialBody startBody;
 
 	void Start () {
-		Ship ship = FindObjectOfType<Ship> ();
+		Ship ship = FindFirstObjectByType<Ship> ();
 		if (startCondition == StartCondition.InShip) {
 			Debug.Log(ship.transform.position);
 		} else if (startCondition == StartCondition.OnBody) {

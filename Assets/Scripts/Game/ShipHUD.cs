@@ -33,7 +33,7 @@ public class ShipHUD : MonoBehaviour {
 
 	void Start () {
 		// Need to draw UI AFTER floating origin updates, otherwise may flicker when origin changes
-		FindObjectOfType<EndlessManager> ().PostFloatingOriginUpdate += UpdateUI;
+		FindFirstObjectByType<EndlessManager> ().PostFloatingOriginUpdate += UpdateUI;
 
 		velocityHorizontal.line.material = new Material (velocityIndicatorMat);
 		velocityHorizontal.head.material = new Material (arrowHeadMat);
@@ -52,7 +52,7 @@ public class ShipHUD : MonoBehaviour {
 		}
 
 		if (ship == null) {
-			ship = FindObjectOfType<Ship> ();
+			ship = FindFirstObjectByType<Ship> ();
 		}
 	}
 
@@ -110,7 +110,7 @@ public class ShipHUD : MonoBehaviour {
 		vertical *= Mathf.Sign (Vector3.Dot (vertical, camT.up));
 
 		// Calculate relative velocity
-		Vector3 relativeVelocityWorldSpace = ship.Rigidbody.velocity - planet.velocity;
+		Vector3 relativeVelocityWorldSpace = ship.Rigidbody.linearVelocity - planet.velocity;
 		//Debug.Log(relativeVelocityWorldSpace +"   player: " + player.velocity + "  planet: " + planet.Velocity);
 		float vx = -Vector3.Dot (relativeVelocityWorldSpace, horizontal);
 		float vy = -Vector3.Dot (relativeVelocityWorldSpace, vertical);
@@ -152,7 +152,7 @@ public class ShipHUD : MonoBehaviour {
 	}
 
 	CelestialBody FindAimedBody () {
-		CelestialBody[] bodies = FindObjectsOfType<CelestialBody> ();
+		CelestialBody[] bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
 		CelestialBody aimedBody = null;
 
 		Vector3 viewForward = cam.transform.forward;
@@ -213,7 +213,7 @@ public class ShipHUD : MonoBehaviour {
 
 	Vector3 CalculateRelativeVelocity (CelestialBody body) {
 		Vector3 dirToBody = (body.transform.position - camT.position).normalized;
-		Vector3 relativeVelocityWorldSpace = ship.Rigidbody.velocity - body.velocity;
+		Vector3 relativeVelocityWorldSpace = ship.Rigidbody.linearVelocity - body.velocity;
 
 		// Calculate horizontal/vertical axes relative to direction toward planet
 		Vector3 horizontal = Vector3.Cross (dirToBody, camT.up).normalized;

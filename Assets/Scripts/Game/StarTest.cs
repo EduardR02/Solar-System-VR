@@ -41,7 +41,7 @@ public class StarTest : MonoBehaviour {
 		if (regenerateMesh) {
 			GenerateMesh ();
 		}
-		var customPostProcessing = FindObjectOfType<CustomPostProcessing> ();
+		var customPostProcessing = FindFirstObjectByType<CustomPostProcessing> ();
 		customPostProcessing.onPostProcessingComplete -= Set;
 		customPostProcessing.onPostProcessingComplete += Set;
 		cam = customPostProcessing.GetComponent<Camera> ();
@@ -50,7 +50,7 @@ public class StarTest : MonoBehaviour {
 		mat.SetFloat ("daytimeFade", daytimeFade);
 
 		if (!oceanMaskRenderer) {
-			oceanMaskRenderer = FindObjectOfType<OceanMaskRenderer> ();
+			oceanMaskRenderer = FindFirstObjectByType<OceanMaskRenderer> ();
 		}
 
 	}

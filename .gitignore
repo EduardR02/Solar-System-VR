@@ -58,3 +58,20 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+# User-specific settings (Unity 2020+)
+/UserSettings/
+
+# Editor-specific settings
+.vscode/
+.idea/
+
+# TextMesh Pro - ignore package files (keep only user-created assets)
+# The package itself comes through Package Manager
+# Only custom fonts, materials, and settings in Assets should be tracked
+Assets/TextMesh Pro/Shaders/
+Assets/TextMesh Pro/Shaders.meta
+Assets/TextMesh Pro/Resources/Shaders/
+Assets/TextMesh Pro/Resources/Shaders.meta
+Assets/TextMesh Pro/Documentation/
+Assets/TextMesh Pro/Documentation.meta
+

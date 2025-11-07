@@ -13,12 +13,12 @@ public class EndlessManager : MonoBehaviour {
     public event System.Action PostFloatingOriginUpdate;
 
     void Awake () {
-        ship = FindObjectOfType<Ship> ();
-        var bodies = FindObjectsOfType<CelestialBody> ();
-        parkourManager = FindObjectOfType<ParkourManager> ();
+        ship = FindFirstObjectByType<Ship> ();
+        var bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
+        parkourManager = FindFirstObjectByType<ParkourManager> ();
         physicsObjects = new List<CelestialBody>(bodies);
         playerCamera = Camera.main;
-        starTest = FindObjectOfType<StarTest> ();
+        starTest = FindFirstObjectByType<StarTest> ();
     }
 
     // used lateupdate before, but it was causing lag with transform.position updates, for example in the particle system

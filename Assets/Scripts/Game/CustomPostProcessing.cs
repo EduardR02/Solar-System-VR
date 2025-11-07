@@ -63,7 +63,7 @@ public class CustomPostProcessing : MonoBehaviour {
 		}
 
 		if (debugOceanMask) {
-			Graphics.Blit (FindObjectOfType<OceanMaskRenderer> ().oceanMaskTexture, finalDestination);
+			Graphics.Blit (FindFirstObjectByType<OceanMaskRenderer> ().oceanMaskTexture, finalDestination);
 		}
 
 		// Trigger post processing complete event
@@ -121,7 +121,6 @@ public class CustomPostProcessing : MonoBehaviour {
 		var api = SystemInfo.graphicsDeviceType;
 			if (
 				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES2 &&
 				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore
 			){
 				_eyeProjection[0][1, 1] *= -1f;

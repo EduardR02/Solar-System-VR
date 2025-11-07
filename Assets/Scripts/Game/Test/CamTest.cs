@@ -12,15 +12,15 @@ public class CamTest : MonoBehaviour {
 	public Vector3 initial;
 
 	void Start () {
-		GetComponent<Rigidbody> ().velocity = initial;
+		GetComponent<Rigidbody> ().linearVelocity = initial;
 		if (setTimestep) {
 
 		}
 	}
 
 	void FixedUpdate () {
-		Debug.Log (GetComponent<Rigidbody> ().velocity);
-		GetComponent<Rigidbody> ().position += GetComponent<Rigidbody> ().velocity * Time.deltaTime;
+		Debug.Log (GetComponent<Rigidbody> ().linearVelocity);
+		GetComponent<Rigidbody> ().position += GetComponent<Rigidbody> ().linearVelocity * Time.deltaTime;
 	}
 
 }

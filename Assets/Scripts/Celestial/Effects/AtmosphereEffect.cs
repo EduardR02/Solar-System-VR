@@ -16,7 +16,7 @@ public class AtmosphereEffect {
 		}
 
 		if (light == null) {
-			light = GameObject.FindObjectOfType<SunShadowCaster> ()?.GetComponent<Light> ();
+			light = GameObject.FindFirstObjectByType<SunShadowCaster> ()?.GetComponent<Light> ();
 		}
 
 		//generator.shading.SetAtmosphereProperties (material);

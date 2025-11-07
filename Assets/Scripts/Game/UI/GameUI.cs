@@ -33,7 +33,7 @@ public class GameUI : MonoBehaviour {
     static GameUI Instance {
         get {
             if (instance == null) {
-                instance = FindObjectOfType<GameUI> ();
+                instance = FindFirstObjectByType<GameUI> ();
             }
             return instance;
         }

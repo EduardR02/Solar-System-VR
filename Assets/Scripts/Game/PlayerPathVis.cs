@@ -23,7 +23,7 @@ public class PlayerPathVis : MonoBehaviour
     {
         timeStep = Universe.physicsTimeStep * PhysicsStepsPerSimUpdate;
         lineRenderer = GetComponentInChildren<LineRenderer>();
-        player = FindObjectOfType<Ship>();
+        player = FindFirstObjectByType<Ship>();
         lineRenderer.positionCount = numSteps;
         playerVirt = new VirtualBody(numSteps);
         referenceBody = player.ReferenceBody;
@@ -87,7 +87,7 @@ public class PlayerPathVis : MonoBehaviour
     void CalcPlayerPath(int steps = 0) {
         if (steps == 0) {
             playerVirt.simluatedPositions.Add(player.Rigidbody.position);
-            playerVirt.velocity = player.Rigidbody.velocity;
+            playerVirt.velocity = player.Rigidbody.linearVelocity;
         }
         else {
             steps = numSteps - 1 - steps;
@@ -101,7 +101,7 @@ public class PlayerPathVis : MonoBehaviour
     }
 
     void InitVirtualBodies() {
-        CelestialBody[] bodies = FindObjectsOfType<CelestialBody> ();
+        CelestialBody[] bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
         virtualBodies = new VirtualBody[bodies.Length];
         for (int i = 0; i < virtualBodies.Length; i++) {
             virtualBodies[i] = new VirtualBody (bodies[i], numSteps);

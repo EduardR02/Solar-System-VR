@@ -13,7 +13,7 @@ public class OceanEffect {
 		}
 
 		if (light == null) {
-			light = GameObject.FindObjectOfType<SunShadowCaster> ()?.GetComponent<Light> ();
+			light = GameObject.FindFirstObjectByType<SunShadowCaster> ()?.GetComponent<Light> ();
 		}
 
 		Vector3 centre = generator.transform.position;

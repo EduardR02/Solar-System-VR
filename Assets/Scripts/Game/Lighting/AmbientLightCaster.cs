@@ -9,7 +9,7 @@ public class AmbientLightCaster : MonoBehaviour {
     Light ambientLight;
 
     void Start () {
-        sunLight = FindObjectOfType<SunShadowCaster> ();
+        sunLight = FindFirstObjectByType<SunShadowCaster> ();
         ambientLight = GetComponent<Light> ();
         camT = Camera.main.transform;
         transform.rotation = CalculateAmbientLightRot ();

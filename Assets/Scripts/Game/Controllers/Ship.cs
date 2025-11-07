@@ -128,7 +128,7 @@ public class Ship : GravityObject {
 	}
 
 	void TeleportToBody (CelestialBody body) {
-		rb.velocity = body.velocity;
+		rb.linearVelocity = body.velocity;
 		rb.MovePosition (body.transform.position + (transform.position - body.transform.position).normalized * body.radius * 2);
 	}
 
@@ -150,7 +150,7 @@ public class Ship : GravityObject {
 	}
 
 	public void SetVelocity (Vector3 velocity) {
-		rb.velocity = velocity;
+		rb.linearVelocity = velocity;
 	}
 
 	void OnCollisionEnter (Collision collision) {

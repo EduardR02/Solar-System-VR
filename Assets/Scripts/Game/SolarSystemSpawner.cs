@@ -16,7 +16,7 @@ public class SolarSystemSpawner : MonoBehaviour {
 		Application.targetFrameRate = 120;
 
 		PRNG prng = new PRNG (seed);
-		CelestialBody[] bodies = FindObjectsOfType<CelestialBody> ();
+		CelestialBody[] bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
 
 		foreach (var body in bodies) {
 			if (body.bodyType == CelestialBody.BodyType.Sun) {

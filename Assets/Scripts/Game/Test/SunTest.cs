@@ -14,7 +14,7 @@ public class SunTest : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        FindObjectOfType<Light>().transform.forward = -transform.position.normalized;
-		FindObjectOfType<Light>().transform.position = transform.position;
+        FindFirstObjectByType<Light>().transform.forward = -transform.position.normalized;
+		FindFirstObjectByType<Light>().transform.position = transform.position;
     }
 }

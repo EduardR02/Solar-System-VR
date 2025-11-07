@@ -41,7 +41,7 @@ public class ParkourManager : MonoBehaviour
 
     void Start()
     {
-        player = FindObjectOfType<Ship>();
+        player = FindFirstObjectByType<Ship>();
         InitPlanets();
         GenerateInteractionChallenge();
     }
@@ -67,7 +67,7 @@ public class ParkourManager : MonoBehaviour
             Random.InitState(randomSeed);
         }
         // don't include the sun or tiny moons
-        planets = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
+        planets = FindObjectsByType<CelestialBody>(FindObjectsSortMode.None).Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
         initialPlanetRotations = new Quaternion[planets.Length];
         planetVertices = new Vector3[planets.Length][];
         int LodRes = 0;
@@ -190,7 +190,7 @@ public class ParkourManager : MonoBehaviour
     }
 
     void IncreaseSunGravity() {
-        CelestialBody sun = FindObjectsOfType<CelestialBody>().Where(planet => planet.bodyType == CelestialBody.BodyType.Sun).First();
+        CelestialBody sun = FindObjectsByType<CelestialBody>(FindObjectsSortMode.None).Where(planet => planet.bodyType == CelestialBody.BodyType.Sun).First();
         sun.playerGravityMultiplier *= 5;
     }
 

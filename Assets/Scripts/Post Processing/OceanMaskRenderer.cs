@@ -18,7 +18,7 @@ public class OceanMaskRenderer : MonoBehaviour {
 
 	void Init () {
 		if (!Application.isPlaying || oceanBodies == null) {
-			var allBodies = FindObjectsOfType<CelestialBodyGenerator> ();
+			var allBodies = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
 			var oceanBodiesList = new List<CelestialBodyGenerator> ();
 			for (int i = 0; i < allBodies.Length; i++) {
 				if (allBodies[i].body.shading.hasOcean && allBodies[i].body.shading.oceanSettings != null) {
@@ -26,8 +26,8 @@ public class OceanMaskRenderer : MonoBehaviour {
 				}
 			}
 			oceanBodies = oceanBodiesList.ToArray ();
-			FindObjectOfType<CustomPostProcessing> ().onPostProcessingBegin -= RenderOceanMask;
-			FindObjectOfType<CustomPostProcessing> ().onPostProcessingBegin += RenderOceanMask;
+			FindFirstObjectByType<CustomPostProcessing> ().onPostProcessingBegin -= RenderOceanMask;
+			FindFirstObjectByType<CustomPostProcessing> ().onPostProcessingBegin += RenderOceanMask;
 		}
 
 	}

@@ -61,7 +61,7 @@ public class PlayerController : GravityObject {
 	void Awake () {
 		cam = GetComponentInChildren<Camera> ();
 		cameraLocalPos = cam.transform.localPosition;
-		spaceship = FindObjectOfType<Ship> ();
+		spaceship = FindFirstObjectByType<Ship> ();
 		InitRigidbody ();
 
 		animator = GetComponentInChildren<Animator> ();
@@ -149,7 +149,7 @@ public class PlayerController : GravityObject {
 		bool grounded = false;
 
 		if (referenceBody) {
-			var relativeVelocity = rb.velocity - referenceBody.velocity;
+			var relativeVelocity = rb.linearVelocity - referenceBody.velocity;
 			// Don't cast ray down if player is jumping up from surface
 			if (relativeVelocity.y <= jumpForce * .5f) {
 				RaycastHit hit;
@@ -204,7 +204,7 @@ public class PlayerController : GravityObject {
 	}
 
 	public void SetVelocity (Vector3 velocity) {
-		rb.velocity = velocity;
+		rb.linearVelocity = velocity;
 	}
 
 	public void ExitFromSpaceship () {

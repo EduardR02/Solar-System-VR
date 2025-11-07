@@ -26,7 +26,7 @@ public class PlanetTest : MonoBehaviour {
 		if (Application.isPlaying) {
 			skySphere.SetActive (false);
 			if (spawnPlayer) {
-				Destroy (FindObjectOfType<Camera> ().gameObject);
+				Destroy (FindFirstObjectByType<Camera> ().gameObject);
 				Instantiate (playerPrefab, Vector3.up * radius * 1.2f, Quaternion.identity);
 			}
 			if (spawnShip) {
@@ -36,7 +36,7 @@ public class PlanetTest : MonoBehaviour {
 				sun.gameObject.SetActive (true);
 				testLight.gameObject.SetActive (false);
 			}
-			bodies = FindObjectsOfType<CelestialBodyGenerator> ();
+			bodies = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
 		}
 	}
 
@@ -62,9 +62,9 @@ public class PlanetTest : MonoBehaviour {
 		body.RecalculateMass ();
 
 		if (useRadius) {
-			FindObjectOfType<CelestialBodyGenerator> ().transform.localScale = Vector3.one * radius;
+			FindFirstObjectByType<CelestialBodyGenerator> ().transform.localScale = Vector3.one * radius;
 		} else {
-			FindObjectOfType<CelestialBodyGenerator> ().transform.localScale = Vector3.one;
+			FindFirstObjectByType<CelestialBodyGenerator> ().transform.localScale = Vector3.one;
 		}
 	}
 }

@@ -29,7 +29,7 @@ public class PlanetEffects : PostProcessingEffect {
 
 	void Init () {
 		if (effectHolders == null || effectHolders.Count == 0 || !Application.isPlaying) {
-			var generators = FindObjectsOfType<CelestialBodyGenerator> ();
+			var generators = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
 			effectHolders = new List<EffectHolder> (generators.Length);
 			for (int i = 0; i < generators.Length; i++) {
 				effectHolders.Add (new EffectHolder (generators[i]));
@@ -106,12 +106,23 @@ public class PlanetEffects : PostProcessingEffect {
 	}
 
 	void GetFrustumPlanes() {
-		Camera cam = Camera.main;
-		Matrix4x4[] worldToProjectionMatrix = new Matrix4x4[2];
-		worldToProjectionMatrix[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
-		worldToProjectionMatrix[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
-		planes[0] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[0]);
-		planes[1] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[1]);
+		Camera cam = Camera.current;
+		if (cam == null) return;
+
+		// Check if stereo rendering is enabled (VR mode)
+		if (cam.stereoEnabled) {
+			Matrix4x4[] worldToProjectionMatrix = new Matrix4x4[2];
+			worldToProjectionMatrix[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
+			worldToProjectionMatrix[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right) * cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
+			planes[0] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[0]);
+			planes[1] = GeometryUtility.CalculateFrustumPlanes(worldToProjectionMatrix[1]);
+		} else {
+			// Non-VR mode: use regular projection matrix for both eyes
+			Matrix4x4 worldToProjection = cam.projectionMatrix * cam.worldToCameraMatrix;
+			Plane[] monoPlanes = GeometryUtility.CalculateFrustumPlanes(worldToProjection);
+			planes[0] = monoPlanes;
+			planes[1] = monoPlanes;
+		}
 	}
 
 	float CalculateMaxClippingDst (Camera cam) {
