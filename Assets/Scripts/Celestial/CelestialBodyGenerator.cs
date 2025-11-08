@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteInEditMode]
+[ExecuteInEditMode, RequireComponent(typeof(PlanetTerrainStreamer))]
 public class CelestialBodyGenerator : MonoBehaviour {
 
 	public enum PreviewMode { LOD0, LOD1, LOD2, CollisionRes }
@@ -399,6 +399,24 @@ public class CelestialBodyGenerator : MonoBehaviour {
 			// Body radius is determined by the celestial body class,
 			// which sets the local scale of the generator object (this object)
 			return transform.localScale.x;
+		}
+	}
+
+	public Vector2 HeightRange {
+		get {
+			return heightMinMax;
+		}
+	}
+
+	public CelestialBodyShading ShadingProfile {
+		get {
+			return body ? body.shading : null;
+		}
+	}
+
+	public CelestialBodyShape ShapeProfile {
+		get {
+			return body ? body.shape : null;
 		}
 	}
 
