@@ -7,12 +7,21 @@ public class CustomPostProcessing : MonoBehaviour {
 	public PostProcessingEffect[] effects;
 	List<RenderTexture> temporaryTextures = new List<RenderTexture> ();
 	Camera cam;
-	public bool debugOceanMask;
 
 	public event System.Action<RenderTexture> onPostProcessingComplete;
 	public event System.Action<RenderTexture> onPostProcessingBegin;
 	public static Matrix4x4[] _uvToEyeToWorld = new Matrix4x4[2];
 	public static Vector4[] _eyePosition = new Vector4[2];
+	public static int StereoDataVersion { get; private set; }
+
+	// Cache for stereo matrix optimization
+	Vector3 lastCameraPosition;
+	Quaternion lastCameraRotation;
+
+	// Persistent ping-pong textures for performance
+	RenderTexture pingPongA;
+	RenderTexture pingPongB;
+	RenderTextureDescriptor lastDescriptor;
 
 	void Init () {
 		cam = Camera.main;
@@ -30,20 +39,41 @@ public class CustomPostProcessing : MonoBehaviour {
 		RenderTexture currentSource = intialSource;
 		RenderTexture currentDestination = null;
 		if (Application.isPlaying && cam.stereoEnabled) {
-			CalculateStereoViewMatrix();
+			// Only recalculate stereo matrices if camera transform changed
+			bool cameraTransformChanged = cam.transform.position != lastCameraPosition ||
+			                               cam.transform.rotation != lastCameraRotation;
+
+			if (cameraTransformChanged) {
+				CalculateStereoViewMatrix();
+				lastCameraPosition = cam.transform.position;
+				lastCameraRotation = cam.transform.rotation;
+			}
+		} else {
+			// Ensure mono rendering path still has valid matrices for post effects
+			CalculateMonoViewMatrix();
+			lastCameraPosition = cam.transform.position;
+			lastCameraRotation = cam.transform.rotation;
 		}
 
 		if (effects != null) {
+			// Use persistent ping-pong textures for intermediate results
+			RenderTextureDescriptor descriptor = finalDestination.descriptor;
+			bool usePingPong = effects.Length > 1;
+
 			for (int i = 0; i < effects.Length; i++) {
 				PostProcessingEffect effect = effects[i];
 				if (effect != null) {
 					if (i == effects.Length - 1) {
 						// Final effect, so render into final destination texture
 						currentDestination = finalDestination;
+					} else if (usePingPong) {
+						// Ping-pong between persistent textures
+						bool useA = (i % 2 == 0);
+						currentDestination = useA ? GetPingPongTexture(ref pingPongA, descriptor) : GetPingPongTexture(ref pingPongB, descriptor);
 					} else {
-						// Get temporary texture to render this effect into
+						// Fallback to temporary texture for single effect
 						currentDestination = TemporaryRenderTexture (finalDestination);
-						temporaryTextures.Add (currentDestination); //
+						temporaryTextures.Add (currentDestination);
 					}
 
 					effect.Render (currentSource, currentDestination); // render the effect
@@ -60,10 +90,6 @@ public class CustomPostProcessing : MonoBehaviour {
 		// Release temporary textures
 		for (int i = 0; i < temporaryTextures.Count; i++) {
 			RenderTexture.ReleaseTemporary (temporaryTextures[i]);
-		}
-
-		if (debugOceanMask) {
-			Graphics.Blit (FindFirstObjectByType<OceanMaskRenderer> ().oceanMaskTexture, finalDestination);
 		}
 
 		// Trigger post processing complete event
@@ -141,10 +167,72 @@ public class CustomPostProcessing : MonoBehaviour {
 
 		_eyePosition[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse.GetColumn(3);
 		_eyePosition[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse.GetColumn(3);
+		StereoDataVersion++;
+	}
+
+	void CalculateMonoViewMatrix() {
+		Matrix4x4 invProj = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true).inverse;
+
+		var api = SystemInfo.graphicsDeviceType;
+		if (
+			api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
+			api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore
+		){
+			invProj[1, 1] *= -1f;
+		}
+
+		Matrix4x4 eyeToWorld = cam.cameraToWorldMatrix;
+
+		// Remove translation to match stereo calculation expectations
+		Matrix4x4 eyeToWorldRotationOnly = eyeToWorld;
+		eyeToWorldRotationOnly.m03 = 0;
+		eyeToWorldRotationOnly.m13 = 0;
+		eyeToWorldRotationOnly.m23 = 0;
+
+		Matrix4x4 uvToEyeToWorld = eyeToWorldRotationOnly * invProj;
+		Vector4 eyePos = eyeToWorld.GetColumn(3);
+
+		// Populate both array slots so shaders using stereo indexing still work in mono
+		for (int i = 0; i < 2; i++) {
+			_uvToEyeToWorld[i] = uvToEyeToWorld;
+			_eyePosition[i] = eyePos;
+		}
+		StereoDataVersion++;
 	}
 
 	public static RenderTexture TemporaryRenderTexture (RenderTexture template) {
 		return RenderTexture.GetTemporary (template.descriptor);
+	}
+
+	// Get a ping-pong texture, reallocating only if resolution changed
+	RenderTexture GetPingPongTexture(ref RenderTexture texture, RenderTextureDescriptor descriptor) {
+		bool needsReallocation = texture == null ||
+		                         !texture.IsCreated() ||
+		                         texture.width != descriptor.width ||
+		                         texture.height != descriptor.height ||
+		                         texture.format != descriptor.colorFormat;
+
+		if (needsReallocation) {
+			if (texture != null) {
+				texture.Release();
+				DestroyImmediate(texture);
+			}
+			texture = new RenderTexture(descriptor);
+			texture.Create();
+		}
+
+		return texture;
+	}
+
+	void OnDisable() {
+		if (pingPongA != null) {
+			pingPongA.Release();
+			DestroyImmediate(pingPongA);
+		}
+		if (pingPongB != null) {
+			pingPongB.Release();
+			DestroyImmediate(pingPongB);
+		}
 	}
 
 }

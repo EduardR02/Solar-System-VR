@@ -143,19 +143,33 @@
 			float3 calculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv) {
 				float blueNoise = tex2Dlod(_BlueNoise, float4(squareUV(uv) * ditherScale,0,0));
 				blueNoise = (blueNoise - 0.5) * ditherStrength;
-				
+
 				float3 inScatterPoint = rayOrigin;
 				float stepSize = rayLength / (numInScatteringPoints - 1);
 				float3 inScatteredLight = 0;
 				float viewRayOpticalDepth = 0;
 
+				// Hoist constant calculations outside loop for massive performance gain
+				float3 sunDitherOffset = dirToSun * ditherStrength;
+				float rayOriginDepth_forward = opticalDepthBaked(rayOrigin, rayDir);
+				float rayOriginDepth_backward = opticalDepthBaked(rayOrigin, -rayDir);
+
 				for (int i = 0; i < numInScatteringPoints; i ++) {
 					float sunRayLength = raySphere(planetCentre, atmosphereRadius, inScatterPoint, dirToSun).y;
-					float sunRayOpticalDepth = opticalDepthBaked(inScatterPoint + dirToSun * ditherStrength, dirToSun);
+					float sunRayOpticalDepth = opticalDepthBaked(inScatterPoint + sunDitherOffset, dirToSun);
 					float localDensity = densityAtPoint(inScatterPoint);
-					viewRayOpticalDepth = opticalDepthBaked2(rayOrigin, rayDir, stepSize * i);
+
+					// Optimized: only compute changing part of opticalDepthBaked2
+					float3 endPoint = rayOrigin + rayDir * (stepSize * i);
+					float d = dot(rayDir, normalize(rayOrigin-planetCentre));
+					const float blendStrength = 1.5;
+					float w = saturate(d * blendStrength + .5);
+					float d1 = rayOriginDepth_forward - opticalDepthBaked(endPoint, rayDir);
+					float d2 = opticalDepthBaked(endPoint, -rayDir) - rayOriginDepth_backward;
+					viewRayOpticalDepth = lerp(d2, d1, w);
+
 					float3 transmittance = exp(-(sunRayOpticalDepth + viewRayOpticalDepth) * scatteringCoefficients);
-					
+
 					inScatteredLight += localDensity * transmittance;
 					inScatterPoint += rayDir * stepSize;
 				}

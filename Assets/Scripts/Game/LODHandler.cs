@@ -10,7 +10,8 @@ public class LODHandler : MonoBehaviour {
 	public float lod2Threshold = .2f;
 
 	[Header ("Update frequency (seconds)")]
-	public float updateFrequency = 0.01f;
+	[Min (0.05f)]
+	public float updateFrequency = 0.25f;
 
 	[Header ("Debug")]
 	public bool debug;
@@ -25,6 +26,7 @@ public class LODHandler : MonoBehaviour {
 	void Start () {
 		timePassedSinceUpdate = updateFrequency;	// so that LODs are updated on first frame
 		if (Application.isPlaying) {
+			EnsureCamera ();
 			bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
 			generators = new CelestialBodyGenerator[bodies.Length];
 			for (int i = 0; i < generators.Length; i++) {
@@ -34,14 +36,25 @@ public class LODHandler : MonoBehaviour {
 	}
 
 	void Update () {
+		EnsureCamera ();
 		DebugLODInfo ();
 		timePassedSinceUpdate += Time.deltaTime;
 
-		if (Application.isPlaying && timePassedSinceUpdate >= updateFrequency) {
+		float targetInterval = Mathf.Max (updateFrequency, 0.05f);
+		if (Application.isPlaying && timePassedSinceUpdate >= targetInterval) {
 			HandleLODs ();
 			timePassedSinceUpdate = 0f;
 		}
 
+	}
+
+	void EnsureCamera () {
+		if (cam == null) {
+			cam = Camera.main;
+			if (cam != null) {
+				camT = cam.transform;
+			}
+		}
 	}
 
 	void HandleLODs () {

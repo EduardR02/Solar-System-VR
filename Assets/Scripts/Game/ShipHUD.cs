@@ -152,7 +152,8 @@ public class ShipHUD : MonoBehaviour {
 	}
 
 	CelestialBody FindAimedBody () {
-		CelestialBody[] bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);
+		// Use cached bodies from NBodySimulation instead of expensive FindObjectsByType
+		CelestialBody[] bodies = NBodySimulation.Bodies;
 		CelestialBody aimedBody = null;
 
 		Vector3 viewForward = cam.transform.forward;

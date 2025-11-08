@@ -6,14 +6,8 @@ using UnityEngine;
 public class FXAATest : MonoBehaviour {
 
 	public PostProcessingEffect fxaa;
-	public bool debugOceanMask;
 
 	void OnRenderImage (RenderTexture src, RenderTexture dest) {
-		if (debugOceanMask) {
-			Graphics.Blit (FindFirstObjectByType<OceanMaskRenderer> ().oceanMaskTexture, dest, new Material (Shader.Find ("Unlit/Texture")));
-			return;
-		} else {
-			Graphics.Blit (src, dest, new Material (Shader.Find ("Unlit/Texture")));
-		}
+		Graphics.Blit (src, dest, new Material (Shader.Find ("Unlit/Texture")));
 	}
 }

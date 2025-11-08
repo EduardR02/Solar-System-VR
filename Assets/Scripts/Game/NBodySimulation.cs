@@ -27,8 +27,11 @@ public class NBodySimulation : MonoBehaviour {
         Vector3 acceleration = Vector3.zero;
         foreach (var body in Instance.bodies) {
             if (body != ignoreBody) {
-                float sqrDst = (body.Position - point).sqrMagnitude;
-                Vector3 forceDir = (body.Position - point).normalized;
+                Vector3 offset = body.Position - point;
+                float sqrDst = offset.sqrMagnitude;
+                // Reuse sqrt calculation: normalized requires sqrt, so compute once
+                float dst = Mathf.Sqrt(sqrDst);
+                Vector3 forceDir = offset / dst;
                 acceleration += forceDir * Universe.gravitationalConstant * body.mass / sqrDst;
             }
         }

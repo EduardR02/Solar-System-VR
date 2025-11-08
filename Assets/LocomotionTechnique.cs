@@ -22,8 +22,9 @@ public class LocomotionTechnique : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float leftTriggerValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, leftController);
-        float rightTriggerValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, rightController);
+        // Use cached input to avoid expensive native calls
+        float leftTriggerValue = VRInputCache.GetAxis1D(OVRInput.Axis1D.PrimaryIndexTrigger, leftController);
+        float rightTriggerValue = VRInputCache.GetAxis1D(OVRInput.Axis1D.PrimaryIndexTrigger, rightController);
 
         rb.AddForce((-leftTriggerValue * leftControllerTransform.forward.normalized - rightTriggerValue * rightControllerTransform.forward.normalized) * maxThrust * Time.deltaTime, ForceMode.Impulse);
     }

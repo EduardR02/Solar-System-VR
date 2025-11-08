@@ -48,6 +48,11 @@
 			float waveNormalScale;
 			float waveSpeed;
 
+			// Precomputed on CPU for performance
+			float2 waveOffsetA;
+			float2 waveOffsetB;
+			float waveNormalScaleScaled;
+
 			// sampler2D _MainTex;
 			UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
 			half4 _MainTex_ST;
@@ -116,16 +121,17 @@
 
 					float3 oceanSphereNormal = normalize(rayOceanIntersectPos);
 
-					float2 waveOffsetA = float2(_Time.x * waveSpeed, _Time.x * waveSpeed * 0.8);
-					float2 waveOffsetB = float2(_Time.x * waveSpeed * - 0.8, _Time.x * waveSpeed * -0.3);
-					float3 waveNormal = triplanarNormal(rayOceanIntersectPos, oceanSphereNormal, waveNormalScale / planetScale, waveOffsetA, waveNormalA);
-					waveNormal = triplanarNormal(rayOceanIntersectPos, waveNormal, waveNormalScale / planetScale, waveOffsetB, waveNormalB);
+					// Use precomputed wave offsets and scale from CPU
+					float3 waveNormal = triplanarNormal(rayOceanIntersectPos, oceanSphereNormal, waveNormalScaleScaled, waveOffsetA, waveNormalA);
+					waveNormal = triplanarNormal(rayOceanIntersectPos, waveNormal, waveNormalScaleScaled, waveOffsetB, waveNormalB);
 					waveNormal = normalize(lerp(oceanSphereNormal, waveNormal, waveStrength));
 					//return float4(oceanNormal * .5 + .5,1);
 					float diffuseLighting = saturate(dot(oceanSphereNormal, dirToSun));
-					float specularAngle = acos(dot(normalize(dirToSun - rayDir), waveNormal));
-					float specularExponent = specularAngle / (1 - smoothness);
-					float specularHighlight = exp(-specularExponent * specularExponent);
+					// Use Blinn-Phong instead of expensive acos for specular
+					float3 halfVector = normalize(dirToSun - rayDir);
+					float specularDot = saturate(dot(waveNormal, halfVector));
+					float specularPower = 1.0 / max(0.001, (1 - smoothness) * (1 - smoothness));
+					float specularHighlight = pow(specularDot, specularPower);
 				
 					oceanCol *= diffuseLighting;
 					oceanCol += specularHighlight * (dstAboveWater > 0) * specularCol;

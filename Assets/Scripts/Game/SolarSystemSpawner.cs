@@ -13,7 +13,8 @@ public class SolarSystemSpawner : MonoBehaviour {
 	public void Spawn (int seed) {
 
 		var sw = System.Diagnostics.Stopwatch.StartNew ();
-		Application.targetFrameRate = 120;
+		// Let VR runtime control framerate instead of forcing 120Hz
+		// Application.targetFrameRate = 120;
 
 		PRNG prng = new PRNG (seed);
 		CelestialBody[] bodies = FindObjectsByType<CelestialBody> (FindObjectsSortMode.None);

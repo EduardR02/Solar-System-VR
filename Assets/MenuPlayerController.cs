@@ -25,8 +25,9 @@ public class MenuPlayerController : MonoBehaviour
     }
 
     void ThrusterMovement() {
-		float leftTriggerValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, leftController);
-        float rightTriggerValue = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, rightController);
+		// Use cached input to avoid expensive native calls
+		float leftTriggerValue = VRInputCache.GetAxis1D(OVRInput.Axis1D.PrimaryIndexTrigger, leftController);
+        float rightTriggerValue = VRInputCache.GetAxis1D(OVRInput.Axis1D.PrimaryIndexTrigger, rightController);
 		Vector3 forceFraction = -leftTriggerValue * leftControllerTransform.forward.normalized - rightTriggerValue * rightControllerTransform.forward.normalized;
         rb.AddForce(forceFraction * maxThrust, ForceMode.Acceleration);
 	}

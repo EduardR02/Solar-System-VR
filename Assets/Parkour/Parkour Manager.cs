@@ -48,8 +48,8 @@ public class ParkourManager : MonoBehaviour
 
     void Update()
     {
-        // A button
-        if (OVRInput.GetDown(OVRInput.Button.One)) {
+        // A button - use cached input to avoid expensive native calls
+        if (VRInputCache.GetButtonDown(OVRInput.Button.One)) {
             CompleteInteractionChallenge();
         }
         if (completed && taskStartTime + 10 < Time.time) {
@@ -66,19 +66,36 @@ public class ParkourManager : MonoBehaviour
         else {
             Random.InitState(randomSeed);
         }
-        // don't include the sun or tiny moons
-        planets = FindObjectsByType<CelestialBody>(FindObjectsSortMode.None).Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
+        // Use cached bodies from NBodySimulation instead of expensive FindObjectsByType
+        planets = NBodySimulation.Bodies.Where(planet => planet.bodyType == CelestialBody.BodyType.Planet).ToArray();
         initialPlanetRotations = new Quaternion[planets.Length];
-        planetVertices = new Vector3[planets.Length][];
-        int LodRes = 0;
+        // No longer pre-allocate planetVertices array - we'll sample vertices on demand
+        planetVertices = null;
         for (int i = 0; i < planets.Length; i++) {
-            CelestialBodyGenerator generator = planets[i].GetComponentInChildren<CelestialBodyGenerator>();
-            planetVertices[i] = generator.GetMeshVertices(LodRes);
-            if (generator.GetOceanRadius() > 0) {
-                planetVertices[i] = GetVerticesAboveOcean(generator.GetOceanRadius() / generator.BodyScale, planetVertices[i]);
-            }
             initialPlanetRotations[i] = planets[i].transform.rotation;
         }
+    }
+
+    // Sample a random vertex position from the planet mesh
+    Vector3 SampleRandomVertexPosition(CelestialBodyGenerator generator) {
+        int LodRes = 0;
+        Vector3[] vertices = generator.GetMeshVertices(LodRes);
+        float oceanRadius = generator.GetOceanRadius() / generator.BodyScale;
+
+        // If planet has ocean, only pick vertices above ocean level
+        if (oceanRadius > 0) {
+            // Sample randomly until we find a vertex above ocean
+            int maxAttempts = 100;
+            for (int attempt = 0; attempt < maxAttempts; attempt++) {
+                Vector3 vertex = vertices[Random.Range(0, vertices.Length)];
+                if (vertex.sqrMagnitude > oceanRadius * oceanRadius) {
+                    return vertex * generator.BodyScale;
+                }
+            }
+        }
+
+        // Fallback: just pick any random vertex
+        return vertices[Random.Range(0, vertices.Length)] * generator.BodyScale;
     }
 
     Vector3[] GetVerticesAboveOcean(float oceanRadius, Vector3[] vertices) {
@@ -118,7 +135,7 @@ public class ParkourManager : MonoBehaviour
         CelestialBody planet = planets[planetIndex];
         Vector3 planetPos = planet.transform.position;
         CelestialBodyGenerator generator = planet.GetComponentInChildren<CelestialBodyGenerator>();
-        Vector3 randomPosition = planetVertices[planetIndex][Random.Range(0, planetVertices[planetIndex].Length)] * generator.BodyScale;
+        Vector3 randomPosition = SampleRandomVertexPosition(generator);
         // spawn the interaction challenge and a beacon here
         Vector3 normal = randomPosition.normalized;
         Quaternion planetRotationDelta = Quaternion.Inverse(initialPlanetRotations[planetIndex]) * planet.transform.rotation;

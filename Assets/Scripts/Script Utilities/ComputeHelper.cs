@@ -16,7 +16,7 @@ public static class ComputeHelper {
 		Vector3Int threadGroupSizes = GetThreadGroupSizes (cs, kernelIndex);
 		int numGroupsX = Mathf.CeilToInt (numIterationsX / (float) threadGroupSizes.x);
 		int numGroupsY = Mathf.CeilToInt (numIterationsY / (float) threadGroupSizes.y);
-		int numGroupsZ = Mathf.CeilToInt (numIterationsZ / (float) threadGroupSizes.y);
+		int numGroupsZ = Mathf.CeilToInt (numIterationsZ / (float) threadGroupSizes.z);
 		cs.Dispatch (kernelIndex, numGroupsX, numGroupsY, numGroupsZ);
 	}
 
@@ -131,7 +131,7 @@ public static class ComputeHelper {
 		for (int i = 0; i < values.Length; i++) {
 			packed[i * 4] = values[i];
 		}
-		return values;
+		return packed;
 	}
 
 	// Editor helpers:

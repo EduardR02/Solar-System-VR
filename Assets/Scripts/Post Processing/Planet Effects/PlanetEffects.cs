@@ -16,11 +16,21 @@ public class PlanetEffects : PostProcessingEffect {
 	public bool displayAtmospheres = true;
 
 	List<EffectHolder> effectHolders;
-	List<float> sortDistances;
+	readonly EffectHolderDistanceComparer distanceComparer = new EffectHolderDistanceComparer();
 
 	List<Material> postProcessingMaterials;
 	bool active = true;
 	Plane[][] planes = new Plane[2][];
+	bool initialized = false;
+
+	// Cache for frustum plane optimization
+	Vector3 lastFrustumCameraPosition;
+	Quaternion lastFrustumCameraRotation;
+	int lastFrustumStereoDataVersion = -1;
+
+	// Cache for sort optimization
+	Vector3 lastSortCameraPosition;
+	const float sortDistanceThreshold = 10f; // Only re-sort if camera moved 10+ units
 
 	public override void Render (RenderTexture source, RenderTexture destination) {
 		List<Material> materials = GetMaterials ();
@@ -28,20 +38,30 @@ public class PlanetEffects : PostProcessingEffect {
 	}
 
 	void Init () {
+		// In play mode, only initialize once and cache the results
+		if (Application.isPlaying && initialized) {
+			if (postProcessingMaterials == null) {
+				postProcessingMaterials = new List<Material> ();
+			}
+			postProcessingMaterials.Clear ();
+			return;
+		}
+
+		// Initialize effect holders (expensive FindObjectsByType call)
 		if (effectHolders == null || effectHolders.Count == 0 || !Application.isPlaying) {
 			var generators = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
 			effectHolders = new List<EffectHolder> (generators.Length);
 			for (int i = 0; i < generators.Length; i++) {
 				effectHolders.Add (new EffectHolder (generators[i]));
 			}
+			if (Application.isPlaying) {
+				initialized = true;
+			}
 		}
+
 		if (postProcessingMaterials == null) {
 			postProcessingMaterials = new List<Material> ();
 		}
-		if (sortDistances == null) {
-			sortDistances = new List<float> ();
-		}
-		sortDistances.Clear ();
 		postProcessingMaterials.Clear ();
 	}
 
@@ -56,7 +76,11 @@ public class PlanetEffects : PostProcessingEffect {
 			Camera cam = Camera.current;
 			Vector3 camPos = cam.transform.position;
 
-			SortFarToNear (camPos);
+			// Only sort if camera moved significantly - planet order rarely changes
+			if ((camPos - lastSortCameraPosition).sqrMagnitude > sortDistanceThreshold * sortDistanceThreshold) {
+				SortFarToNear (camPos);
+				lastSortCameraPosition = camPos;
+			}
 			GetFrustumPlanes();
 
 			for (int i = 0; i < effectHolders.Count; i++) {
@@ -109,6 +133,15 @@ public class PlanetEffects : PostProcessingEffect {
 		Camera cam = Camera.current;
 		if (cam == null) return;
 
+		// Only recalculate if camera transform or stereo matrices changed
+		bool cameraTransformChanged = cam.transform.position != lastFrustumCameraPosition ||
+		                               cam.transform.rotation != lastFrustumCameraRotation;
+		bool stereoDataChanged = CustomPostProcessing.StereoDataVersion != lastFrustumStereoDataVersion;
+
+		if (!cameraTransformChanged && !stereoDataChanged && planes[0] != null && planes[1] != null) {
+			return; // Use cached frustum planes
+		}
+
 		// Check if stereo rendering is enabled (VR mode)
 		if (cam.stereoEnabled) {
 			Matrix4x4[] worldToProjectionMatrix = new Matrix4x4[2];
@@ -123,6 +156,11 @@ public class PlanetEffects : PostProcessingEffect {
 			planes[0] = monoPlanes;
 			planes[1] = monoPlanes;
 		}
+
+		// Update cache
+		lastFrustumCameraPosition = cam.transform.position;
+		lastFrustumCameraRotation = cam.transform.rotation;
+		lastFrustumStereoDataVersion = CustomPostProcessing.StereoDataVersion;
 	}
 
 	float CalculateMaxClippingDst (Camera cam) {
@@ -153,22 +191,19 @@ public class PlanetEffects : PostProcessingEffect {
 	}
 
 	void SortFarToNear (Vector3 viewPos) {
-		for (int i = 0; i < effectHolders.Count; i++) {
-			float dstToSurface = effectHolders[i].DstFromSurface (viewPos);
-			sortDistances.Add (dstToSurface);
-		}
+		distanceComparer.ViewPosition = viewPos;
+		effectHolders.Sort (distanceComparer);
+	}
 
-		for (int i = 0; i < effectHolders.Count - 1; i++) {
-			for (int j = i + 1; j > 0; j--) {
-				if (sortDistances[j - 1] < sortDistances[j]) {
-					float tempDst = sortDistances[j - 1];
-					var temp = effectHolders[j - 1];
-					sortDistances[j - 1] = sortDistances[j];
-					sortDistances[j] = tempDst;
-					effectHolders[j - 1] = effectHolders[j];
-					effectHolders[j] = temp;
-				}
-			}
+	class EffectHolderDistanceComparer : IComparer<EffectHolder> {
+		public Vector3 ViewPosition;
+		public int Compare (EffectHolder x, EffectHolder y) {
+			if (x == null && y == null) return 0;
+			if (x == null) return 1;
+			if (y == null) return -1;
+			float dstX = x.DstFromSurface (ViewPosition);
+			float dstY = y.DstFromSurface (ViewPosition);
+			return dstY.CompareTo (dstX); // far to near
 		}
 	}
 }

@@ -134,9 +134,20 @@ public class CelestialBodyGenerator : MonoBehaviour {
 				Vector4[] shadingData = body.shading.GenerateShadingData (vertexBuffer);
 				previewMesh.SetUVs (0, shadingData);
 
-				// Sometimes when changing a colour property, invalid data is returned from compute shader
+				// FIXME/TODO: Double-update workaround for "invalid data from compute shader"
 				// Running the shading a second time fixes it.
-				// Not sure if this is my bug, or Unity's (TODO: investigate)
+				//
+				// LIKELY ROOT CAUSE: ComputeHelper had 2 critical bugs that were fixed:
+				//   1. ComputeHelper.Run() used .y for Z-axis dispatch (line 19) - causing under-dispatch
+				//   2. PackFloats() returned input array instead of packed array (line 134) - returned zeros
+				// These bugs would cause compute shaders to:
+				//   - Miss work groups in 3D dispatches (height/shading compute shaders)
+				//   - Return uninitialized/zero data on first run
+				//   - Work correctly on second run after GPU state initialized
+				//
+				// RECOMMENDATION: Test if this workaround is still needed after ComputeHelper fixes.
+				// If zeros still appear on first run, check for GPU/CPU synchronization issues.
+				//
 				debug_numUpdates++;
 				if (debugDoubleUpdate && debug_numUpdates < 2) {
 					shadingNoiseSettingsUpdated = true;
@@ -193,10 +204,25 @@ public class CelestialBodyGenerator : MonoBehaviour {
 	}
 
 	void Dummy () {
-		// Crude fix for a problem I was having where the values in the vertex buffer were *occasionally* all zero at start of game
+		// FIXME/TODO: "Priming" workaround for zero data from compute shader on first run
 		// This function runs the compute shader once with single dummy input, after which it seems the problem doesn't occur
 		// (Waiting until Time.frameCount > 3 before generating is another gross hack that seems to fix the problem)
-		// I don't know why...
+		//
+		// LIKELY ROOT CAUSE: Same as double-update workaround above.
+		// ComputeHelper.PackFloats() bug returned zeros instead of packed data (now fixed).
+		// Under-dispatch bug would also cause partial/zero results on first run.
+		//
+		// RELATIONSHIP TO DOUBLE-UPDATE: Both workarounds address the same underlying issue:
+		//   - Dummy() "primes" the GPU by running compute shader once with minimal data
+		//   - DoubleUpdate runs shader twice to get correct results
+		//   - Both suggest GPU state initialization or buffer synchronization problem
+		//
+		// RECOMMENDATION: After ComputeHelper fixes, test if either workaround is still needed.
+		// If problem persists, investigate:
+		//   - GPU/CPU buffer synchronization (SetData followed by immediate Dispatch)
+		//   - Command buffer flushing
+		//   - First-frame initialization ordering
+		//
 		Vector3[] vertices = new Vector3[] { Vector3.zero };
 		ComputeHelper.CreateStructuredBuffer<Vector3> (ref vertexBuffer, vertices);
 		body.shape.CalculateHeights (vertexBuffer);

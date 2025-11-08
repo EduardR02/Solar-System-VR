@@ -20,7 +20,10 @@ public class StarTest : MonoBehaviour {
 	public Gradient colourSpectrum;
 	Texture2D spectrum;
 	bool settingsUpdated;
-	OceanMaskRenderer oceanMaskRenderer;
+
+	CelestialBodyGenerator[] oceanBodies;
+	Vector4[] oceanSpheres;
+	const int MaxOceanSpheres = 32;
 
 	void Start () {
 		Init (true);
@@ -49,10 +52,7 @@ public class StarTest : MonoBehaviour {
 		mat.SetTexture ("_Spectrum", spectrum);
 		mat.SetFloat ("daytimeFade", daytimeFade);
 
-		if (!oceanMaskRenderer) {
-			oceanMaskRenderer = FindFirstObjectByType<OceanMaskRenderer> ();
-		}
-
+		CacheOceanBodies ();
 	}
 
 	public void UpdateOrigin(Vector3 originOffset) {
@@ -61,11 +61,45 @@ public class StarTest : MonoBehaviour {
 
 	public void Set (RenderTexture screen) {
 		mat.SetTexture ("_MainTex", screen);
-		if (oceanMaskRenderer) {
-			mat.SetTexture ("_OceanMask", oceanMaskRenderer.oceanMaskTexture);
-		}
+		UpdateOceanUniforms ();
+		mat.SetMatrixArray ("UV_TO_EYE_TO_WORLD", CustomPostProcessing._uvToEyeToWorld);
+		mat.SetVectorArray ("_WorldSpaceEyePos", CustomPostProcessing._eyePosition);
 		if (Camera.current == cam) { // ignore in scene view
 			transform.position = cam.transform.position;
+		}
+	}
+
+	void CacheOceanBodies () {
+		var generators = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
+		var list = new List<CelestialBodyGenerator> ();
+		for (int i = 0; i < generators.Length; i++) {
+			if (generators[i].body != null && generators[i].body.shading != null && generators[i].body.shading.hasOcean && generators[i].body.shading.oceanSettings != null) {
+				list.Add (generators[i]);
+			}
+		}
+		oceanBodies = list.ToArray ();
+		oceanSpheres = new Vector4[Mathf.Min (oceanBodies.Length, MaxOceanSpheres)];
+	}
+
+	void UpdateOceanUniforms () {
+		if (oceanBodies == null) {
+			CacheOceanBodies ();
+		}
+
+		int sphereCount = (oceanBodies != null) ? Mathf.Min (oceanBodies.Length, MaxOceanSpheres) : 0;
+		if ((oceanSpheres == null || oceanSpheres.Length != sphereCount) && sphereCount > 0) {
+			oceanSpheres = new Vector4[sphereCount];
+		}
+
+		for (int i = 0; i < sphereCount; i++) {
+			Vector3 pos = oceanBodies[i].transform.position;
+			float radius = oceanBodies[i].GetOceanRadius ();
+			oceanSpheres[i] = new Vector4 (pos.x, pos.y, pos.z, radius);
+		}
+
+		mat.SetInt ("_NumOceanSpheres", sphereCount);
+		if (sphereCount > 0) {
+			mat.SetVectorArray ("_OceanSpheres", oceanSpheres);
 		}
 	}
 
