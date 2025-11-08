@@ -27,12 +27,13 @@
 				float3 normal : NORMAL;
 			};
 
-			struct v2f {
-				float4 pos : SV_POSITION;
-				float3 worldPos : TEXCOORD0;
-				float3 worldNormal : TEXCOORD1;
-				float4 screenPos : TEXCOORD2;
-			};
+		struct v2f {
+			float4 pos : SV_POSITION;
+			float3 worldPos : TEXCOORD0;
+			float3 worldNormal : TEXCOORD1;
+			float4 screenPos : TEXCOORD2;
+			UNITY_VERTEX_OUTPUT_STEREO
+		};
 
 			sampler2D waveNormalA;
 			sampler2D waveNormalB;
@@ -57,17 +58,20 @@
 
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
 
-			v2f vert (appdata v) {
-				v2f o;
-				float4 world = mul(unity_ObjectToWorld, v.vertex);
-				o.worldPos = world.xyz;
-				o.worldNormal = UnityObjectToWorldNormal(v.normal);
-				o.pos = UnityWorldToClipPos(world);
-				UNITY_TRANSFER_SCREENPOS(o, o.pos);
-				return o;
-			}
+		v2f vert (appdata v) {
+			v2f o;
+			UNITY_INITIALIZE_OUTPUT(v2f, o);
+			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+			float4 world = mul(unity_ObjectToWorld, v.vertex);
+			o.worldPos = world.xyz;
+			o.worldNormal = UnityObjectToWorldNormal(v.normal);
+			o.pos = UnityWorldToClipPos(world);
+			o.screenPos = ComputeScreenPos(o.pos);
+			return o;
+		}
 
-			fixed4 frag (v2f i) : SV_Target {
+		fixed4 frag (v2f i) : SV_Target {
+			UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				float3 rayOrigin = _WorldSpaceCameraPos;
 				float3 toPixel = i.worldPos - rayOrigin;
 				float3 rayDir = normalize(toPixel);

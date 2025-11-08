@@ -69,7 +69,6 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 	void Initialize () {
 		if (!generator || generator.ShadingProfile == null || generator.ShapeProfile == null) {
-			Debug.LogWarning ("PlanetTerrainStreamer requires CelestialBodyGenerator with valid shape/shading settings.", this);
 			return;
 		}
 

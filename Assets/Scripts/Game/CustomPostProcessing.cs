@@ -62,7 +62,7 @@ public class CustomPostProcessing : MonoBehaviour {
 
 			for (int i = 0; i < effects.Length; i++) {
 				PostProcessingEffect effect = effects[i];
-				if (effect == null || effect is PlanetEffects) {
+				if (effect == null) {
 					continue;
 				}
 

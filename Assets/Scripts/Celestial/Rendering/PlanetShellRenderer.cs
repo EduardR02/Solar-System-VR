@@ -56,7 +56,7 @@ public class PlanetShellRenderer : MonoBehaviour {
 		SortIfNeeded ();
 	}
 
-	void OnPreRender () {
+	void OnPreCull () {
 		if (Camera.current != cam) {
 			return;
 		}

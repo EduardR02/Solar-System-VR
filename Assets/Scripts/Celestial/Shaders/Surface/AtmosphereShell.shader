@@ -26,11 +26,12 @@
 				float4 vertex : POSITION;
 			};
 
-			struct v2f {
-				float4 pos : SV_POSITION;
-				float3 worldPos : TEXCOORD0;
-				float4 screenPos : TEXCOORD1;
-			};
+		struct v2f {
+			float4 pos : SV_POSITION;
+			float3 worldPos : TEXCOORD0;
+			float4 screenPos : TEXCOORD1;
+			UNITY_VERTEX_OUTPUT_STEREO
+		};
 
 			sampler2D _PlanetShellBackbuffer;
 			sampler2D _BlueNoise;
@@ -52,14 +53,16 @@
 			float planetRadius;
 			float4 backgroundColor;
 
-			v2f vert (appdata v) {
-				v2f o;
-				float4 world = mul(unity_ObjectToWorld, v.vertex);
-				o.worldPos = world.xyz;
-				o.pos = UnityWorldToClipPos(world);
-				UNITY_TRANSFER_SCREENPOS(o, o.pos);
-				return o;
-			}
+		v2f vert (appdata v) {
+			v2f o;
+			UNITY_INITIALIZE_OUTPUT(v2f, o);
+			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+			float4 world = mul(unity_ObjectToWorld, v.vertex);
+			o.worldPos = world.xyz;
+			o.pos = UnityWorldToClipPos(world);
+			o.screenPos = ComputeScreenPos(o.pos);
+			return o;
+		}
 
 			float2 SquareUV(float2 uv) {
 				float2 resolution = _ScreenParams.xy;
@@ -131,7 +134,8 @@
 				return reflectedLight + inScatteredLight + originalCol / 3;
 			}
 
-			float4 frag (v2f i) : SV_Target {
+		float4 frag (v2f i) : SV_Target {
+			UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				float3 rayOrigin = _WorldSpaceCameraPos;
 				float3 rayDir = normalize(i.worldPos - rayOrigin);
 
