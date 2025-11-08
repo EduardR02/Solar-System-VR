@@ -43,6 +43,18 @@ public class CelestialBodyGenerator : MonoBehaviour {
 		}
 	}
 
+	void OnEnable () {
+		if (Application.isPlaying) {
+			PlanetEnvironmentRegistry.Register (this);
+		}
+	}
+
+	void OnDisable () {
+		if (Application.isPlaying) {
+			PlanetEnvironmentRegistry.Unregister (this);
+		}
+	}
+
 	void Update () {
 		if (InEditMode) {
 			HandleEditModeGeneration ();
@@ -421,6 +433,9 @@ public class CelestialBodyGenerator : MonoBehaviour {
 
 	void OnDestroy () {
 		ReleaseAllBuffers ();
+		if (Application.isPlaying) {
+			PlanetEnvironmentRegistry.Unregister (this);
+		}
 	}
 
 	bool CanGenerateMesh () {

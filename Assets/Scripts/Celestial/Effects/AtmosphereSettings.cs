@@ -36,47 +36,47 @@ public class AtmosphereSettings : ScriptableObject {
 	bool settingsUpToDate;
 
 	public void SetProperties (Material material, float bodyRadius) {
-		/*
-		if (Application.isPlaying) {
-			if (Time.time > 1) {
-				timeOfDay += Time.deltaTime * 0.1f;
-					var sun = GameObject.Find ("Test Sun");
+		if (material == null) {
+			return;
+		}
+		ApplyProperties (new MaterialBinder (material), bodyRadius);
+	}
+
+	public void ApplyTo (MaterialPropertyBlock block, float bodyRadius) {
+		if (block == null) {
+			return;
+		}
+		ApplyProperties (new PropertyBlockBinder (block), bodyRadius);
+	}
+
+	void ApplyProperties (IPropertyBinder binder, float bodyRadius) {
+		var sun = GameObject.Find ("Test Sun");
+		if (sun) {
 			sun.transform.position = new Vector3 (Mathf.Cos (timeOfDay), Mathf.Sin (timeOfDay), 0) * sunDst;
 			sun.transform.LookAt (Vector3.zero);
-			}
 		}
-		*/
-		if (!settingsUpToDate || !Application.isPlaying) {
-			var sun = GameObject.Find ("Test Sun");
-			if (sun) {
-				sun.transform.position = new Vector3 (Mathf.Cos (timeOfDay), Mathf.Sin (timeOfDay), 0) * sunDst;
-				sun.transform.LookAt (Vector3.zero);
-			}
 
-			float atmosphereRadius = (1 + atmosphereScale) * bodyRadius;
+		float atmosphereRadius = (1 + atmosphereScale) * bodyRadius;
 
-			material.SetVector ("params", testParams);
-			material.SetInt ("numInScatteringPoints", inScatteringPoints);
-			material.SetInt ("numOpticalDepthPoints", opticalDepthPoints);
-			material.SetFloat ("atmosphereRadius", atmosphereRadius);
-			material.SetFloat ("planetRadius", bodyRadius);
-			material.SetFloat ("densityFalloff", densityFalloff);
+		binder.SetVector ("params", testParams);
+		binder.SetInt ("numInScatteringPoints", inScatteringPoints);
+		binder.SetInt ("numOpticalDepthPoints", opticalDepthPoints);
+		binder.SetFloat ("atmosphereRadius", atmosphereRadius);
+		binder.SetFloat ("planetRadius", bodyRadius);
+		binder.SetFloat ("densityFalloff", densityFalloff);
 
-			// Strength of (rayleigh) scattering is inversely proportional to wavelength^4
-			float scatterX = Pow (400 / wavelengths.x, 4);
-			float scatterY = Pow (400 / wavelengths.y, 4);
-			float scatterZ = Pow (400 / wavelengths.z, 4);
-			material.SetVector ("scatteringCoefficients", new Vector3 (scatterX, scatterY, scatterZ) * scatteringStrength);
-			material.SetFloat ("intensity", intensity);
-			material.SetFloat ("ditherStrength", ditherStrength);
-			material.SetFloat ("ditherScale", ditherScale);
-			material.SetTexture ("_BlueNoise", blueNoise);
+		// Strength of (rayleigh) scattering is inversely proportional to wavelength^4
+		float scatterX = Pow (400 / wavelengths.x, 4);
+		float scatterY = Pow (400 / wavelengths.y, 4);
+		float scatterZ = Pow (400 / wavelengths.z, 4);
+		binder.SetVector ("scatteringCoefficients", new Vector3 (scatterX, scatterY, scatterZ) * scatteringStrength);
+		binder.SetFloat ("intensity", intensity);
+		binder.SetFloat ("ditherStrength", ditherStrength);
+		binder.SetFloat ("ditherScale", ditherScale);
+		binder.SetTexture ("_BlueNoise", blueNoise);
 
-			PrecomputeOutScattering ();
-			material.SetTexture ("_BakedOpticalDepth", opticalDepthTexture);
-
-			settingsUpToDate = true;
-		}
+		EnsureOpticalDepthTexture ();
+		binder.SetTexture ("_BakedOpticalDepth", opticalDepthTexture);
 	}
 
 	void PrecomputeOutScattering () {
@@ -89,8 +89,15 @@ public class AtmosphereSettings : ScriptableObject {
 			opticalDepthCompute.SetFloat ("densityFalloff", densityFalloff);
 			opticalDepthCompute.SetVector ("params", testParams);
 			ComputeHelper.Run (opticalDepthCompute, textureSize, textureSize);
+			settingsUpToDate = true;
 		}
 
+	}
+
+	void EnsureOpticalDepthTexture () {
+		if (!settingsUpToDate || opticalDepthTexture == null || !opticalDepthTexture.IsCreated ()) {
+			PrecomputeOutScattering ();
+		}
 	}
 
 	void OnValidate () {
@@ -99,5 +106,36 @@ public class AtmosphereSettings : ScriptableObject {
 
 	public float GetAtmosphereRadius (float bodyRadius) {
 		return (1 + atmosphereScale) * bodyRadius;
+	}
+
+	interface IPropertyBinder {
+		void SetFloat (string name, float value);
+		void SetInt (string name, int value);
+		void SetVector (string name, Vector4 value);
+		void SetTexture (string name, Texture value);
+	}
+
+	class MaterialBinder : IPropertyBinder {
+		readonly Material material;
+		public MaterialBinder (Material material) {
+			this.material = material;
+		}
+
+		public void SetFloat (string name, float value) => material.SetFloat (name, value);
+		public void SetInt (string name, int value) => material.SetInt (name, value);
+		public void SetVector (string name, Vector4 value) => material.SetVector (name, value);
+		public void SetTexture (string name, Texture value) => material.SetTexture (name, value);
+	}
+
+	class PropertyBlockBinder : IPropertyBinder {
+		readonly MaterialPropertyBlock block;
+		public PropertyBlockBinder (MaterialPropertyBlock block) {
+			this.block = block;
+		}
+
+		public void SetFloat (string name, float value) => block.SetFloat (name, value);
+		public void SetInt (string name, int value) => block.SetInt (name, value);
+		public void SetVector (string name, Vector4 value) => block.SetVector (name, value);
+		public void SetTexture (string name, Texture value) => block.SetTexture (name, value);
 	}
 }

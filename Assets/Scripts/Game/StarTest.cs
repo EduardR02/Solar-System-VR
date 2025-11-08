@@ -24,6 +24,7 @@ public class StarTest : MonoBehaviour {
 	CelestialBodyGenerator[] oceanBodies;
 	Vector4[] oceanSpheres;
 	const int MaxOceanSpheres = 32;
+	int lastOceanRegistryVersion = -1;
 
 	void Start () {
 		Init (true);
@@ -70,19 +71,34 @@ public class StarTest : MonoBehaviour {
 	}
 
 	void CacheOceanBodies () {
-		var generators = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
-		var list = new List<CelestialBodyGenerator> ();
-		for (int i = 0; i < generators.Length; i++) {
-			if (generators[i].body != null && generators[i].body.shading != null && generators[i].body.shading.hasOcean && generators[i].body.shading.oceanSettings != null) {
-				list.Add (generators[i]);
+		List<CelestialBodyGenerator> list = new List<CelestialBodyGenerator> ();
+
+		if (Application.isPlaying && PlanetEnvironmentRegistry.Bodies.Count > 0) {
+			var registered = PlanetEnvironmentRegistry.Bodies;
+			for (int i = 0; i < registered.Count; i++) {
+				var generator = registered[i];
+				if (generator && generator.body && generator.body.shading && generator.body.shading.hasOcean && generator.body.shading.oceanSettings) {
+					list.Add (generator);
+				}
+			}
+		} else {
+			var generators = FindObjectsByType<CelestialBodyGenerator> (FindObjectsSortMode.None);
+			for (int i = 0; i < generators.Length; i++) {
+				if (generators[i].body != null && generators[i].body.shading != null && generators[i].body.shading.hasOcean && generators[i].body.shading.oceanSettings != null) {
+					list.Add (generators[i]);
+				}
 			}
 		}
+
 		oceanBodies = list.ToArray ();
 		oceanSpheres = new Vector4[Mathf.Min (oceanBodies.Length, MaxOceanSpheres)];
 	}
 
 	void UpdateOceanUniforms () {
-		if (oceanBodies == null) {
+		if (Application.isPlaying && lastOceanRegistryVersion != PlanetEnvironmentRegistry.Version) {
+			lastOceanRegistryVersion = PlanetEnvironmentRegistry.Version;
+			CacheOceanBodies ();
+		} else if (oceanBodies == null) {
 			CacheOceanBodies ();
 		}
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteInEditMode, ImageEffectAllowedInSceneView]
+[ExecuteInEditMode, ImageEffectAllowedInSceneView, RequireComponent(typeof(PlanetShellRenderer))]
 public class CustomPostProcessing : MonoBehaviour {
 
 	public PostProcessingEffect[] effects;
@@ -62,23 +62,25 @@ public class CustomPostProcessing : MonoBehaviour {
 
 			for (int i = 0; i < effects.Length; i++) {
 				PostProcessingEffect effect = effects[i];
-				if (effect != null) {
-					if (i == effects.Length - 1) {
-						// Final effect, so render into final destination texture
-						currentDestination = finalDestination;
-					} else if (usePingPong) {
-						// Ping-pong between persistent textures
-						bool useA = (i % 2 == 0);
-						currentDestination = useA ? GetPingPongTexture(ref pingPongA, descriptor) : GetPingPongTexture(ref pingPongB, descriptor);
-					} else {
-						// Fallback to temporary texture for single effect
-						currentDestination = TemporaryRenderTexture (finalDestination);
-						temporaryTextures.Add (currentDestination);
-					}
-
-					effect.Render (currentSource, currentDestination); // render the effect
-					currentSource = currentDestination; // output texture of this effect becomes input for next effect
+				if (effect == null || effect is PlanetEffects) {
+					continue;
 				}
+
+				if (i == effects.Length - 1) {
+					// Final effect, so render into final destination texture
+					currentDestination = finalDestination;
+				} else if (usePingPong) {
+					// Ping-pong between persistent textures
+					bool useA = (i % 2 == 0);
+					currentDestination = useA ? GetPingPongTexture(ref pingPongA, descriptor) : GetPingPongTexture(ref pingPongB, descriptor);
+				} else {
+					// Fallback to temporary texture for single effect
+					currentDestination = TemporaryRenderTexture (finalDestination);
+					temporaryTextures.Add (currentDestination);
+				}
+
+				effect.Render (currentSource, currentDestination); // render the effect
+				currentSource = currentDestination; // output texture of this effect becomes input for next effect
 			}
 		}
 
