@@ -16,26 +16,38 @@ public abstract class CelestialBodyShape : ScriptableObject {
 	public event System.Action OnSettingChanged;
 
 	ComputeBuffer heightBuffer;
+	int heightBufferCapacity;
 
-	public virtual float[] CalculateHeights (ComputeBuffer vertexBuffer) {
+	public virtual float[] CalculateHeights (ComputeBuffer vertexBuffer, int vertexCount) {
 		//Debug.Log (System.Environment.StackTrace);
 		// Set data
 		SetShapeData ();
-		heightMapCompute.SetInt ("numVertices", vertexBuffer.count);
+		heightMapCompute.SetInt ("numVertices", vertexCount);
 		heightMapCompute.SetBuffer (0, "vertices", vertexBuffer);
-		ComputeHelper.CreateAndSetBuffer<float> (ref heightBuffer, vertexBuffer.count, heightMapCompute, "heights");
+		EnsureHeightBufferCapacity (vertexCount);
+		heightMapCompute.SetBuffer (0, "heights", heightBuffer);
 
 		// Run
-		ComputeHelper.Run (heightMapCompute, vertexBuffer.count);
+		ComputeHelper.Run (heightMapCompute, vertexCount);
 
 		// Get heights
-		var heights = new float[vertexBuffer.count];
-		heightBuffer.GetData (heights);
+		var heights = new float[vertexCount];
+		heightBuffer.GetData (heights, 0, 0, vertexCount);
 		return heights;
+	}
+
+	void EnsureHeightBufferCapacity (int required) {
+		if (heightBuffer != null && heightBufferCapacity >= required) {
+			return;
+		}
+		ComputeHelper.Release (heightBuffer);
+		heightBuffer = new ComputeBuffer (required, System.Runtime.InteropServices.Marshal.SizeOf (typeof (float)));
+		heightBufferCapacity = required;
 	}
 
 	public virtual void ReleaseBuffers () {
 		ComputeHelper.Release (heightBuffer);
+		heightBufferCapacity = 0;
 	}
 
 	protected virtual void SetShapeData () {

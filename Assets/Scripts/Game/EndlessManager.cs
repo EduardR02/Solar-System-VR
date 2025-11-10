@@ -30,16 +30,29 @@ public class EndlessManager : MonoBehaviour {
         }
     }
 
-    void UpdateFloatingOrigin () {
-        Vector3 originOffset = playerCamera.transform.position;
-        float dstFromOrigin = originOffset.magnitude;
-        if (dstFromOrigin > distanceThreshold) {
+	void UpdateFloatingOrigin () {
+		if (!playerCamera) {
+			playerCamera = Camera.main;
+		}
+		if (!playerCamera) {
+			return;
+		}
+
+		Vector3 originOffset = playerCamera.transform.position;
+		float dstFromOrigin = originOffset.magnitude;
+		if (dstFromOrigin > distanceThreshold) {
             // rb.position combined with lateupdate works, don't put .MovePosition as you don't want interpolation
             // wihch would create bad feedback loop. If you use LateUpdate there is a small "shift" because the interpolation gets "thrown off"
             // so this works best by far!
-            ship.UpdateOrigin(originOffset);
-            starTest.UpdateOrigin(originOffset);
-            parkourManager.UpdateOrigin(originOffset);
+			if (ship) {
+				ship.UpdateOrigin (originOffset);
+			}
+			if (starTest) {
+				starTest.UpdateOrigin (originOffset);
+			}
+			if (parkourManager) {
+				parkourManager.UpdateOrigin (originOffset);
+			}
             foreach (CelestialBody cb in physicsObjects) {
                 cb.UpdateOrigin(originOffset);
             }

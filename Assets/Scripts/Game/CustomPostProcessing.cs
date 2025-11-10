@@ -21,10 +21,11 @@ public class CustomPostProcessing : MonoBehaviour {
 	// Persistent ping-pong textures for performance
 	RenderTexture pingPongA;
 	RenderTexture pingPongB;
-	RenderTextureDescriptor lastDescriptor;
+	readonly Matrix4x4[] stereoProjection = new Matrix4x4[2];
+	readonly Matrix4x4[] stereoEyeToWorld = new Matrix4x4[2];
 
-	void Init () {
-		cam = Camera.main;
+	void Awake () {
+		EnsureCameraReference ();
 	}
 
 	[ImageEffectOpaque]
@@ -32,7 +33,11 @@ public class CustomPostProcessing : MonoBehaviour {
 		if (onPostProcessingBegin != null) {
 			onPostProcessingBegin (finalDestination);
 		}
-		Init ();
+		EnsureCameraReference ();
+		if (!cam) {
+			Graphics.Blit (intialSource, finalDestination);
+			return;
+		}
 
 		temporaryTextures.Clear ();
 
@@ -138,41 +143,39 @@ public class CustomPostProcessing : MonoBehaviour {
 	}
 
 	void CalculateStereoViewMatrix() {
-		Matrix4x4[] _eyeProjection = new Matrix4x4[2];
-		Matrix4x4[] _eyeToWorld = new Matrix4x4[2];
+		EnsureCameraReference ();
+		var projections = stereoProjection;
+		var eyes = stereoEyeToWorld;
 		// stolen from https://github.com/sigtrapgames/VrTunnellingPro-Unity
-        _eyeProjection[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
-        _eyeProjection[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
-        _eyeProjection[0] = GL.GetGPUProjectionMatrix(_eyeProjection[0], true).inverse;
-        _eyeProjection[1] = GL.GetGPUProjectionMatrix(_eyeProjection[1], true).inverse;
-        
-		var api = SystemInfo.graphicsDeviceType;
-			if (
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
-				api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore
-			){
-				_eyeProjection[0][1, 1] *= -1f;
-				_eyeProjection[1][1, 1] *= -1f;
-			}
-		_eyeToWorld[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
-		_eyeToWorld[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
-	
-		// remove translational part of the matrix so that we don't have to do it every time in the shader
-		for (int i = 0; i < 2; i++) {
-			_eyeToWorld[i].m03 = 0;
-        	_eyeToWorld[i].m13 = 0;
-        	_eyeToWorld[i].m23 = 0;
-		}
-		// precompute the matrix, otherwise have to do it in every frag...
-		_uvToEyeToWorld[0] = _eyeToWorld[0] * _eyeProjection[0];
-		_uvToEyeToWorld[1] = _eyeToWorld[1] * _eyeProjection[1];
+	        projections[0] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+	        projections[1] = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+	        projections[0] = GL.GetGPUProjectionMatrix(projections[0], true).inverse;
+	        projections[1] = GL.GetGPUProjectionMatrix(projections[1], true).inverse;
 
-		_eyePosition[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse.GetColumn(3);
-		_eyePosition[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse.GetColumn(3);
+		var api = SystemInfo.graphicsDeviceType;
+		if (
+			api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 &&
+			api != UnityEngine.Rendering.GraphicsDeviceType.OpenGLCore
+		) {
+			projections[0][1, 1] *= -1f;
+			projections[1][1, 1] *= -1f;
+		}
+		eyes[0] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse;
+		eyes[1] = cam.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse;
+
+		for (int i = 0; i < 2; i++) {
+			Matrix4x4 rotationOnly = eyes[i];
+	        	rotationOnly.m03 = 0;
+	        	rotationOnly.m13 = 0;
+	        	rotationOnly.m23 = 0;
+			_uvToEyeToWorld[i] = rotationOnly * projections[i];
+			_eyePosition[i] = eyes[i].GetColumn (3);
+		}
 		StereoDataVersion++;
 	}
 
 	void CalculateMonoViewMatrix() {
+		EnsureCameraReference ();
 		Matrix4x4 invProj = GL.GetGPUProjectionMatrix(cam.projectionMatrix, true).inverse;
 
 		var api = SystemInfo.graphicsDeviceType;
@@ -200,6 +203,15 @@ public class CustomPostProcessing : MonoBehaviour {
 			_eyePosition[i] = eyePos;
 		}
 		StereoDataVersion++;
+	}
+
+	void EnsureCameraReference () {
+		if (!cam) {
+			cam = GetComponent<Camera> ();
+		}
+		if (!cam) {
+			cam = Camera.main;
+		}
 	}
 
 	public static RenderTexture TemporaryRenderTexture (RenderTexture template) {

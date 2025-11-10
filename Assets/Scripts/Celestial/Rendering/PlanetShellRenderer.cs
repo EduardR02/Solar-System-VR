@@ -306,11 +306,12 @@ public class PlanetShellRenderer : MonoBehaviour {
 		}
 
 		bool needsBackbuffer = false;
+		int remainingAtmospheres = 0;
 		for (int i = 0; i < effectHolders.Count; i++) {
-			var holder = effectHolders[i];
-			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
+			var holderCheck = effectHolders[i];
+			if (holderCheck.atmosphereBlock != null && holderCheck.atmosphereVisible) {
 				needsBackbuffer = true;
-				break;
+				remainingAtmospheres++;
 			}
 		}
 
@@ -332,7 +333,10 @@ public class PlanetShellRenderer : MonoBehaviour {
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
 				if (needsBackbuffer) {
-					CopyCameraToBackbuffer ();
+					remainingAtmospheres--;
+					if (remainingAtmospheres > 0) {
+						CopyCameraToBackbuffer ();
+					}
 				}
 			}
 		}

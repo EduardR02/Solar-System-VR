@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 /*
@@ -26,32 +27,42 @@ public abstract class CelestialBodyShading : ScriptableObject {
 
 	protected Vector4[] cachedShadingData;
 	ComputeBuffer shadingBuffer;
+	int shadingBufferCapacity;
 
 	// 
 	public virtual void Initialize (CelestialBodyShape shape) { }
 
 	// Generate Vector4[] of shading data. This is stored in mesh uvs and used to help shade the body
-	public Vector4[] GenerateShadingData (ComputeBuffer vertexBuffer) {
-		int numVertices = vertexBuffer.count;
-		Vector4[] shadingData = new Vector4[numVertices];
+	public Vector4[] GenerateShadingData (ComputeBuffer vertexBuffer, int vertexCount) {
+		Vector4[] shadingData = new Vector4[vertexCount];
 
 		if (shadingDataCompute) {
 			// Set data
 			SetShadingDataComputeProperties ();
 
-			shadingDataCompute.SetInt ("numVertices", numVertices);
+			shadingDataCompute.SetInt ("numVertices", vertexCount);
 			shadingDataCompute.SetBuffer (0, "vertices", vertexBuffer);
-			ComputeHelper.CreateAndSetBuffer<Vector4> (ref shadingBuffer, numVertices, shadingDataCompute, "shadingData");
+			EnsureShadingBufferCapacity (vertexCount);
+			shadingDataCompute.SetBuffer (0, "shadingData", shadingBuffer);
 
 			// Run
-			ComputeHelper.Run (shadingDataCompute, numVertices);
+			ComputeHelper.Run (shadingDataCompute, vertexCount);
 
 			// Get data
-			shadingBuffer.GetData (shadingData);
+			shadingBuffer.GetData (shadingData, 0, 0, vertexCount);
 		}
 
 		cachedShadingData = shadingData;
 		return shadingData;
+	}
+
+	void EnsureShadingBufferCapacity (int required) {
+		if (shadingBuffer != null && shadingBufferCapacity >= required) {
+			return;
+		}
+		ComputeHelper.Release (shadingBuffer);
+		shadingBuffer = new ComputeBuffer (required, System.Runtime.InteropServices.Marshal.SizeOf (typeof (Vector4)));
+		shadingBufferCapacity = required;
 	}
 
 	// Set shading properties on terrain
@@ -72,6 +83,7 @@ public abstract class CelestialBodyShading : ScriptableObject {
 
 	public virtual void ReleaseBuffers () {
 		ComputeHelper.Release (shadingBuffer);
+		shadingBufferCapacity = 0;
 	}
 
 	public static void TextureFromGradient (ref Texture2D texture, int width, Gradient gradient, FilterMode filterMode = FilterMode.Bilinear) {
@@ -113,5 +125,6 @@ public abstract class CelestialBodyShading : ScriptableObject {
 		if (OnSettingChanged != null) {
 			OnSettingChanged ();
 		}
+		PlanetEnvironmentRegistry.MarkDirty ();
 	}
 }

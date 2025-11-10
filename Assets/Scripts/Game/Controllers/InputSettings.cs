@@ -24,8 +24,8 @@ public class InputSettings : ScriptableObject {
 	}
 
 	public void LoadSettings () {
-		PlayerPrefs.GetFloat (nameof (mouseSensitivity), defaultMouseSensitivity);
-		PlayerPrefs.GetFloat (nameof (mouseSmoothing), defaultMouseSmoothing);
+		mouseSensitivity = PlayerPrefs.GetFloat (nameof (mouseSensitivity), defaultMouseSensitivity);
+		mouseSmoothing = PlayerPrefs.GetFloat (nameof (mouseSmoothing), defaultMouseSmoothing);
 
 	}
 

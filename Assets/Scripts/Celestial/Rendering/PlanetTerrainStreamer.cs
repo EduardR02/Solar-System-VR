@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -43,6 +44,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 	readonly Dictionary<int, int[]> triangleTemplates = new Dictionary<int, int[]> ();
 	ComputeBuffer vertexBuffer;
+	int vertexBufferCapacity;
 
 	bool initialized;
 	bool waitingForSettings;
@@ -160,6 +162,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			vertexBuffer.Release ();
 			vertexBuffer.Dispose ();
 			vertexBuffer = null;
+			vertexBufferCapacity = 0;
 		}
 		for (int i = 0; i < roots?.Length; i++) {
 			roots[i]?.ReleaseRecursive (patchPool);
@@ -367,7 +370,6 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	PlanetTerrainPatch AcquirePatch (PatchKey key) {
 		PlanetTerrainPatch patch = (patchPool.Count > 0) ? patchPool.Pop () : new PlanetTerrainPatch (this, transform);
 		patch.Configure (key, terrainMaterial);
-		patch.BuildIfNeeded ();
 		return patch;
 	}
 
@@ -388,10 +390,10 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	Vector3 SampleHeightsAndShading (Vector3[] directions, int vertexCount, Vector3[] vertices, out Vector4[] shading) {
-		ComputeHelper.CreateStructuredBuffer<Vector3> (ref vertexBuffer, vertexCount);
-		vertexBuffer.SetData (directions);
-		float[] heights = generator.ShapeProfile.CalculateHeights (vertexBuffer);
-		shading = generator.ShadingProfile.GenerateShadingData (vertexBuffer);
+		EnsureVertexBufferCapacity (vertexCount);
+		vertexBuffer.SetData (directions, 0, 0, vertexCount);
+		float[] heights = generator.ShapeProfile.CalculateHeights (vertexBuffer, vertexCount);
+		shading = generator.ShadingProfile.GenerateShadingData (vertexBuffer, vertexCount);
 
 		Vector3 centroid = Vector3.zero;
 		for (int i = 0; i < vertexCount; i++) {
@@ -402,6 +404,15 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 		int count = Mathf.Max (1, vertexCount);
 		return centroid / count;
+	}
+
+	void EnsureVertexBufferCapacity (int requiredVertexCount) {
+		if (vertexBuffer != null && vertexBufferCapacity >= requiredVertexCount) {
+			return;
+		}
+		ComputeHelper.Release (vertexBuffer);
+		vertexBuffer = new ComputeBuffer (requiredVertexCount, System.Runtime.InteropServices.Marshal.SizeOf (typeof (Vector3)));
+		vertexBufferCapacity = requiredVertexCount;
 	}
 
 	Camera GetActiveCamera () {
@@ -669,7 +680,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 				if (meshCollider == null) {
 					meshCollider = gameObject.AddComponent<MeshCollider> ();
 					meshCollider.convex = false;
-					meshCollider.cookingOptions = MeshColliderCookingOptions.EnableMeshCleaning;
+					meshCollider.cookingOptions = MeshColliderCookingOptions.None;
 				}
 				meshCollider.sharedMesh = mesh;
 				meshCollider.enabled = true;

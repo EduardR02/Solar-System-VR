@@ -13,6 +13,13 @@ public class StarDome : MonoBehaviour {
 	Camera cam;
 
 	void Start () {
+		if (Application.isPlaying) {
+			// Legacy star dome relied on thousands of GameObjects. Runtime now uses procedural star field.
+			enabled = false;
+			gameObject.SetActive (false);
+			return;
+		}
+
 		cam = Camera.main;
 		//var sw = System.Diagnostics.Stopwatch.StartNew ();
 		if (cam) {

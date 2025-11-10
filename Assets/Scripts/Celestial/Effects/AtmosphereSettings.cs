@@ -50,12 +50,6 @@ public class AtmosphereSettings : ScriptableObject {
 	}
 
 	void ApplyProperties (IPropertyBinder binder, float bodyRadius) {
-		var sun = GameObject.Find ("Test Sun");
-		if (sun) {
-			sun.transform.position = new Vector3 (Mathf.Cos (timeOfDay), Mathf.Sin (timeOfDay), 0) * sunDst;
-			sun.transform.LookAt (Vector3.zero);
-		}
-
 		float atmosphereRadius = (1 + atmosphereScale) * bodyRadius;
 
 		binder.SetVector ("params", testParams);
