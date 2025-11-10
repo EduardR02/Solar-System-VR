@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DefaultExecutionOrder(200)]
 [DisallowMultipleComponent]
@@ -8,8 +9,11 @@ using UnityEngine;
 public class PlanetTerrainStreamer : MonoBehaviour {
 
 	[Header("Patch Settings")]
-	[Range(8, 96)]
-	public int basePatchResolution = 48;
+	[FormerlySerializedAs("basePatchResolution")]
+	[Range(8, 128)]
+	public int nearPatchResolution = 64;
+	[Range(4, 64)]
+	public int farPatchResolution = 16;
 	[Range(1, 6)]
 	public int maxSubdivision = 4;
 	[Tooltip("Distance thresholds per LOD level (meters). Array length should be maxSubdivision + 1.")]
@@ -37,9 +41,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	readonly Stack<PlanetTerrainPatch> patchPool = new Stack<PlanetTerrainPatch>();
 	PlanetTerrainPatch colliderPatch;
 
-	int vertsPerEdge;
-	int vertexCount;
-	int[] triangleTemplate;
+	readonly Dictionary<int, int[]> triangleTemplates = new Dictionary<int, int[]> ();
 	ComputeBuffer vertexBuffer;
 
 	bool initialized;
@@ -47,6 +49,29 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 	void Awake () {
 		RefreshCachedReferences ();
+	}
+
+	void OnValidate () {
+		nearPatchResolution = Mathf.Max (4, nearPatchResolution);
+		farPatchResolution = Mathf.Clamp (farPatchResolution, 4, nearPatchResolution);
+	}
+
+	int GetVertsPerEdge (int level) {
+		int maxLevel = Mathf.Max (1, maxSubdivision);
+		float t = Mathf.Clamp01 (level / (float) maxLevel);
+		int minRes = Mathf.Min (nearPatchResolution, farPatchResolution);
+		int maxRes = Mathf.Max (nearPatchResolution, farPatchResolution);
+		int quads = Mathf.RoundToInt (Mathf.Lerp (farPatchResolution, nearPatchResolution, t));
+		quads = Mathf.Clamp (quads, minRes, maxRes);
+		return Mathf.Max (2, quads) + 1;
+	}
+
+	int[] GetTriangleTemplate (int vertsPerEdge) {
+		if (!triangleTemplates.TryGetValue (vertsPerEdge, out var tris)) {
+			tris = BuildTriangleTemplate (vertsPerEdge);
+			triangleTemplates.Add (vertsPerEdge, tris);
+		}
+		return tris;
 	}
 
 	void Start () {
@@ -93,11 +118,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 		EnsureLodArray ();
 
-		vertsPerEdge = Mathf.Max (2, basePatchResolution) + 1;
-		vertexCount = vertsPerEdge * vertsPerEdge;
-		triangleTemplate = BuildTriangleTemplate (vertsPerEdge - 1);
-
-		vertexBuffer = new ComputeBuffer (vertexCount, sizeof (float) * 3);
+		triangleTemplates.Clear ();
 
 		terrainMaterial = new Material (generator.ShadingProfile.terrainMaterial) {
 			enableInstancing = true
@@ -322,7 +343,8 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 		}
 	}
 
-	int[] BuildTriangleTemplate (int quadsPerEdge) {
+	int[] BuildTriangleTemplate (int vertsPerEdge) {
+		int quadsPerEdge = Mathf.Max (1, vertsPerEdge - 1);
 		int[] tris = new int[quadsPerEdge * quadsPerEdge * 6];
 		int index = 0;
 		for (int y = 0; y < quadsPerEdge; y++) {
@@ -343,13 +365,13 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	PlanetTerrainPatch AcquirePatch (PatchKey key) {
-		PlanetTerrainPatch patch = (patchPool.Count > 0) ? patchPool.Pop () : new PlanetTerrainPatch (this, transform, vertexCount);
+		PlanetTerrainPatch patch = (patchPool.Count > 0) ? patchPool.Pop () : new PlanetTerrainPatch (this, transform);
 		patch.Configure (key, terrainMaterial);
 		patch.BuildIfNeeded ();
 		return patch;
 	}
 
-	void PopulateSampleDirections (PatchKey key, Vector3[] destination) {
+	void PopulateSampleDirections (PatchKey key, Vector3[] destination, int vertsPerEdge) {
 		int subdivisions = 1 << key.level;
 		float patchScale = 1f / subdivisions;
 
@@ -365,19 +387,20 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 		}
 	}
 
-	Vector3 SampleHeightsAndShading (Vector3[] directions, Vector3[] vertices, out Vector4[] shading) {
+	Vector3 SampleHeightsAndShading (Vector3[] directions, int vertexCount, Vector3[] vertices, out Vector4[] shading) {
+		ComputeHelper.CreateStructuredBuffer<Vector3> (ref vertexBuffer, vertexCount);
 		vertexBuffer.SetData (directions);
 		float[] heights = generator.ShapeProfile.CalculateHeights (vertexBuffer);
 		shading = generator.ShadingProfile.GenerateShadingData (vertexBuffer);
 
 		Vector3 centroid = Vector3.zero;
-		for (int i = 0; i < directions.Length; i++) {
+		for (int i = 0; i < vertexCount; i++) {
 			Vector3 vertex = directions[i] * heights[i];
 			vertices[i] = vertex;
 			centroid += vertex;
 		}
 
-		int count = Mathf.Max (1, directions.Length);
+		int count = Mathf.Max (1, vertexCount);
 		return centroid / count;
 	}
 
@@ -525,9 +548,10 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 		MeshCollider meshCollider;
 		readonly Mesh mesh;
 
-		readonly Vector3[] sampleDirections;
-		readonly Vector3[] vertices;
+		Vector3[] sampleDirections;
+		Vector3[] vertices;
 		Vector4[] shadingData;
+		int vertsPerEdge;
 
 		Rect faceRect;
 		public PatchKey Key { get; private set; }
@@ -538,7 +562,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 		readonly PlanetTerrainStreamer owner;
 
-		public PlanetTerrainPatch (PlanetTerrainStreamer owner, Transform parent, int vertexCount) {
+		public PlanetTerrainPatch (PlanetTerrainStreamer owner, Transform parent) {
 			this.owner = owner;
 			gameObject = new GameObject ("Terrain Patch");
 			transform = gameObject.transform;
@@ -554,10 +578,6 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			mesh.MarkDynamic ();
 			filter.sharedMesh = mesh;
 
-			sampleDirections = new Vector3[vertexCount];
-			vertices = new Vector3[vertexCount];
-			shadingData = new Vector4[vertexCount];
-
 			gameObject.SetActive (false);
 		}
 
@@ -565,6 +585,9 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			Key = key;
 			renderer.sharedMaterial = material;
 			meshDirty = true;
+
+			vertsPerEdge = owner.GetVertsPerEdge (key.level);
+			EnsureCapacity (vertsPerEdge * vertsPerEdge);
 
 			int subdivisions = 1 << key.level;
 			float patchScale = 1f / subdivisions;
@@ -581,12 +604,13 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 				return;
 			}
 
-			owner.PopulateSampleDirections (Key, sampleDirections);
-			Vector3 centroid = owner.SampleHeightsAndShading (sampleDirections, vertices, out shadingData);
+			owner.PopulateSampleDirections (Key, sampleDirections, vertsPerEdge);
+			int vertexCount = sampleDirections.Length;
+			Vector3 centroid = owner.SampleHeightsAndShading (sampleDirections, vertexCount, vertices, out shadingData);
 
 			mesh.Clear ();
 			mesh.SetVertices (vertices);
-			mesh.SetTriangles (owner.triangleTemplate, 0, true);
+			mesh.SetTriangles (owner.GetTriangleTemplate (vertsPerEdge), 0, true);
 			mesh.SetUVs (0, shadingData);
 			mesh.RecalculateNormals ();
 			mesh.RecalculateBounds ();
@@ -601,6 +625,15 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 			filter.sharedMesh = mesh;
 			meshDirty = false;
+		}
+
+		void EnsureCapacity (int vertexCount) {
+			if (sampleDirections != null && sampleDirections.Length == vertexCount) {
+				return;
+			}
+			sampleDirections = new Vector3[vertexCount];
+			vertices = new Vector3[vertexCount];
+			shadingData = new Vector4[vertexCount];
 		}
 
 		public void SetVisible (bool visible) {

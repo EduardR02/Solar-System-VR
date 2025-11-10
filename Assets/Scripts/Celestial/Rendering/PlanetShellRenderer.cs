@@ -317,13 +317,10 @@ public class PlanetShellRenderer : MonoBehaviour {
 		if (needsBackbuffer) {
 			var descriptor = CreateBackbufferDescriptor (Mathf.Max (1, cam.pixelWidth), Mathf.Max (1, cam.pixelHeight));
 			renderCommandBuffer.GetTemporaryRT (PlanetShellBackbufferId, descriptor, FilterMode.Bilinear);
-			renderCommandBuffer.Blit (BuiltinRenderTextureType.CurrentActive, PlanetShellBackbufferId);
-			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, PlanetShellBackbufferId);
+			CopyCameraToBackbuffer ();
 		} else {
 			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
 		}
-
-		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
 
 		for (int i = 0; i < effectHolders.Count; i++) {
 			var holder = effectHolders[i];
@@ -334,6 +331,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
+				if (needsBackbuffer) {
+					CopyCameraToBackbuffer ();
+				}
 			}
 		}
 
@@ -380,6 +380,11 @@ public class PlanetShellRenderer : MonoBehaviour {
 #endif
 		descriptor.sRGB = QualitySettings.activeColorSpace == ColorSpace.Linear;
 		return descriptor;
+	}
+
+	void CopyCameraToBackbuffer () {
+		renderCommandBuffer.Blit (BuiltinRenderTextureType.CameraTarget, PlanetShellBackbufferId);
+		renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, PlanetShellBackbufferId);
 	}
 
 	MaterialPropertyBlock CreateOceanBlock (CelestialBodyGenerator generator, OceanSettings settings, bool randomize, int seed) {
