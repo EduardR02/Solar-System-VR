@@ -12,6 +12,7 @@ public class PlanetShellRenderer : MonoBehaviour {
 
 	[Range (8, 256)]
 	public int shellResolution = 64;
+	[SerializeField] bool debugLogging;
 
 	[SerializeField] Shader oceanShellShader;
 	[SerializeField] Shader atmosphereShellShader;
@@ -157,6 +158,14 @@ public class PlanetShellRenderer : MonoBehaviour {
 			}
 		}
 
+		if (debugLogging) {
+			Debug.Log ($"[PlanetShellRenderer] Rebuilt holders. Bodies with shells: {effectHolders.Count}");
+			for (int i = 0; i < effectHolders.Count; i++) {
+				var holder = effectHolders[i];
+				var shading = holder.generator.body?.shading;
+				Debug.Log ($"  • {holder.generator.name}: ocean={holder.oceanBlock != null} atmosphere={holder.atmosphereBlock != null} (shading valid={shading != null})");
+			}
+		}
 		lastSortPosition = Vector3.one * float.MaxValue;
 	}
 
@@ -233,6 +242,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 					holder.oceanBlock.SetFloat ("planetScale", holder.generator.BodyScale);
 				} else {
 					holder.oceanVisible = false;
+					if (debugLogging) {
+						Debug.Log ($"[PlanetShellRenderer] Ocean culled for {holder.generator.name} (radius={radius})");
+					}
 				}
 			}
 
@@ -264,6 +276,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 					holder.atmosphereBlock.SetVector ("dirToSun", dirToSun);
 				} else {
 					holder.atmosphereVisible = false;
+					if (debugLogging) {
+						Debug.Log ($"[PlanetShellRenderer] Atmosphere culled for {holder.generator.name} (radius={atmosphereRadius})");
+					}
 				}
 			}
 		}
@@ -301,6 +316,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 		renderCommandBuffer.Clear ();
 
 		if (effectHolders.Count == 0 || shellMesh == null || oceanMaterial == null || atmosphereMaterial == null) {
+			if (debugLogging) {
+				Debug.Log ($"[PlanetShellRenderer] Skipping draw: holders={effectHolders.Count} shellMeshNull={shellMesh == null} oceanMatNull={oceanMaterial == null} atmoMatNull={atmosphereMaterial == null}");
+			}
 			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
 			return;
 		}
@@ -328,10 +346,16 @@ public class PlanetShellRenderer : MonoBehaviour {
 
 			if (holder.oceanBlock != null && holder.oceanVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.oceanMatrix, oceanMaterial, 0, 0, holder.oceanBlock);
+				if (debugLogging) {
+					Debug.Log ($"[PlanetShellRenderer] Queued ocean draw for {holder.generator.name} (radius={holder.generator.GetOceanRadius ()})");
+				}
 			}
 
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
+				if (debugLogging) {
+					Debug.Log ($"[PlanetShellRenderer] Queued atmosphere draw for {holder.generator.name} (radius={holder.atmosphereMatrix.lossyScale.x})");
+				}
 				if (needsBackbuffer) {
 					remainingAtmospheres--;
 					if (remainingAtmospheres > 0) {

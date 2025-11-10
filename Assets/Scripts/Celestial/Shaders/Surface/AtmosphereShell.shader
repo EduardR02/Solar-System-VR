@@ -142,20 +142,28 @@
 				float2 uv = i.screenPos.xy / i.screenPos.w;
 				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, i.screenPos);
 
-				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
-				float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
-				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) / max(0.0001, dot(rayDir, camForward));
+		float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
+		float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
+		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
+		float viewProj = dot(rayDir, camForward);
+		if (sceneDepth > 0.0 && abs(viewProj) > 0.0001) {
+			sceneDepth /= viewProj;
+		} else {
+			sceneDepth = 1e6;
+		}
 
 				float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir);
 				float dstToSurface = min(sceneDepth, dstToOcean);
 
 				float2 hitInfo = raySphere(planetCentre, atmosphereRadius, rayOrigin, rayDir);
 				float dstToAtmosphere = hitInfo.x;
-				float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
-
-				if (dstThroughAtmosphere <= 0) {
-					return float4(0,0,0,0);
-				}
+		float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
+		if (dstThroughAtmosphere <= 0) {
+			dstThroughAtmosphere = hitInfo.y;
+			if (dstThroughAtmosphere <= 0) {
+				return float4(0,0,0,0);
+			}
+		}
 
 				const float epsilon = 0.0001;
 				float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);

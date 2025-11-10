@@ -77,17 +77,27 @@
 				float3 rayDir = normalize(toPixel);
 				float viewLength = length(toPixel);
 
-				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
-				float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
-				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) / max(0.0001, dot(rayDir, camForward));
+		float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
+		float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
+		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
+		float viewProj = dot(rayDir, camForward);
+		if (sceneDepth > 0.0 && abs(viewProj) > 0.0001) {
+			sceneDepth /= viewProj;
+		}
+		else {
+			sceneDepth = 1e6;
+		}
 
 				float2 hitInfo = raySphere(oceanCentre, oceanRadius, rayOrigin, rayDir);
 				float dstToOcean = hitInfo.x;
 				float dstThroughOcean = hitInfo.y;
-				float oceanViewDepth = min(dstThroughOcean, sceneDepth - dstToOcean);
-				if (oceanViewDepth <= 0) {
-					return 0;
-				}
+		float oceanViewDepth = min(dstThroughOcean, sceneDepth - dstToOcean);
+		if (oceanViewDepth <= 0) {
+			oceanViewDepth = dstThroughOcean;
+			if (oceanViewDepth <= 0) {
+				return 0;
+			}
+		}
 
 				float3 rayOceanIntersectPos = rayOrigin + rayDir * dstToOcean - oceanCentre;
 				float3 oceanSphereNormal = normalize(rayOceanIntersectPos);
