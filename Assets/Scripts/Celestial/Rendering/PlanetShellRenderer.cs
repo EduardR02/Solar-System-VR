@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if UNITY_2019_1_OR_NEWER
+using UnityEngine.XR;
+#endif
 
 [RequireComponent (typeof (Camera))]
 public class PlanetShellRenderer : MonoBehaviour {
@@ -20,6 +23,8 @@ public class PlanetShellRenderer : MonoBehaviour {
 	Light sunLight;
 	Vector3 lastSortPosition = Vector3.one * float.MaxValue;
 	int lastRegistryVersion = -1;
+	CommandBuffer renderCommandBuffer;
+	static readonly int PlanetShellBackbufferId = Shader.PropertyToID ("_PlanetShellBackbuffer");
 
 	readonly List<EffectHolder> effectHolders = new List<EffectHolder> ();
 
@@ -32,10 +37,12 @@ public class PlanetShellRenderer : MonoBehaviour {
 		cam.depthTextureMode |= DepthTextureMode.Depth;
 
 		EnsureResources ();
+		EnsureCommandBuffer ();
 		lastRegistryVersion = -1; // force rebuild
 	}
 
 	void OnDisable () {
+		DisposeCommandBuffer ();
 		effectHolders.Clear ();
 		DisposeResources ();
 	}
@@ -54,13 +61,7 @@ public class PlanetShellRenderer : MonoBehaviour {
 		UpdateSunReference ();
 		UpdateDynamicProperties ();
 		SortIfNeeded ();
-	}
-
-	void OnPreCull () {
-		if (Camera.current != cam) {
-			return;
-		}
-		RenderShells ();
+		BuildCommandBuffer ();
 	}
 
 	void EnsureResources () {
@@ -102,6 +103,26 @@ public class PlanetShellRenderer : MonoBehaviour {
 		if (atmosphereMaterial) {
 			DestroyImmediate (atmosphereMaterial);
 			atmosphereMaterial = null;
+		}
+	}
+
+	void EnsureCommandBuffer () {
+		if (renderCommandBuffer != null || !cam) {
+			return;
+		}
+		renderCommandBuffer = new CommandBuffer {
+			name = "Planet Shell Renderer"
+		};
+		cam.AddCommandBuffer (CameraEvent.BeforeImageEffects, renderCommandBuffer);
+	}
+
+	void DisposeCommandBuffer () {
+		if (renderCommandBuffer != null && cam) {
+			cam.RemoveCommandBuffer (CameraEvent.BeforeImageEffects, renderCommandBuffer);
+		}
+		if (renderCommandBuffer != null) {
+			renderCommandBuffer.Release ();
+			renderCommandBuffer = null;
 		}
 	}
 
@@ -265,25 +286,100 @@ public class PlanetShellRenderer : MonoBehaviour {
 		lastSortPosition = camPos;
 	}
 
-	void RenderShells () {
-		if (!shellMesh || !oceanMaterial || !atmosphereMaterial) {
-			EnsureResources ();
-			if (!shellMesh || !oceanMaterial || !atmosphereMaterial) {
-				return;
+	void BuildCommandBuffer () {
+		if (!cam) {
+			return;
+		}
+
+		EnsureResources ();
+		EnsureCommandBuffer ();
+
+		if (renderCommandBuffer == null) {
+			return;
+		}
+
+		renderCommandBuffer.Clear ();
+
+		if (effectHolders.Count == 0 || shellMesh == null || oceanMaterial == null || atmosphereMaterial == null) {
+			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
+			return;
+		}
+
+		bool needsBackbuffer = false;
+		for (int i = 0; i < effectHolders.Count; i++) {
+			var holder = effectHolders[i];
+			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
+				needsBackbuffer = true;
+				break;
 			}
 		}
+
+		if (needsBackbuffer) {
+			var descriptor = CreateBackbufferDescriptor (Mathf.Max (1, cam.pixelWidth), Mathf.Max (1, cam.pixelHeight));
+			renderCommandBuffer.GetTemporaryRT (PlanetShellBackbufferId, descriptor, FilterMode.Bilinear);
+			renderCommandBuffer.Blit (BuiltinRenderTextureType.CurrentActive, PlanetShellBackbufferId);
+			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, PlanetShellBackbufferId);
+		} else {
+			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
+		}
+
+		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
 
 		for (int i = 0; i < effectHolders.Count; i++) {
 			var holder = effectHolders[i];
 
 			if (holder.oceanBlock != null && holder.oceanVisible) {
-				Graphics.DrawMesh (shellMesh, holder.oceanMatrix, oceanMaterial, 0, cam, 0, holder.oceanBlock, ShadowCastingMode.Off, false);
+				renderCommandBuffer.DrawMesh (shellMesh, holder.oceanMatrix, oceanMaterial, 0, 0, holder.oceanBlock);
 			}
 
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
-				Graphics.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, cam, 0, holder.atmosphereBlock, ShadowCastingMode.Off, false);
+				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
 			}
 		}
+
+		if (needsBackbuffer) {
+			renderCommandBuffer.ReleaseTemporaryRT (PlanetShellBackbufferId);
+		}
+	}
+
+	RenderTextureDescriptor CreateBackbufferDescriptor (int width, int height) {
+		RenderTextureDescriptor descriptor;
+
+		if (cam && cam.targetTexture) {
+			descriptor = cam.targetTexture.descriptor;
+			descriptor.width = width;
+			descriptor.height = height;
+		}
+#if UNITY_2019_1_OR_NEWER
+		else if (XRSettings.enabled && cam && cam.stereoTargetEye != StereoTargetEyeMask.None) {
+			descriptor = XRSettings.eyeTextureDesc;
+			descriptor.width = width;
+			descriptor.height = height;
+		}
+#endif
+		else {
+			RenderTextureFormat format = cam && cam.allowHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default;
+			descriptor = new RenderTextureDescriptor (width, height, format, 0) {
+				vrUsage = VRTextureUsage.None,
+				dimension = TextureDimension.Tex2D,
+				volumeDepth = 1
+			};
+		}
+
+		descriptor.msaaSamples = 1;
+		descriptor.depthBufferBits = 0;
+		descriptor.useMipMap = false;
+		descriptor.autoGenerateMips = false;
+		descriptor.enableRandomWrite = false;
+#if UNITY_2019_1_OR_NEWER
+		if (!XRSettings.enabled) {
+			descriptor.vrUsage = VRTextureUsage.None;
+			descriptor.dimension = TextureDimension.Tex2D;
+			descriptor.volumeDepth = 1;
+		}
+#endif
+		descriptor.sRGB = QualitySettings.activeColorSpace == ColorSpace.Linear;
+		return descriptor;
 	}
 
 	MaterialPropertyBlock CreateOceanBlock (CelestialBodyGenerator generator, OceanSettings settings, bool randomize, int seed) {

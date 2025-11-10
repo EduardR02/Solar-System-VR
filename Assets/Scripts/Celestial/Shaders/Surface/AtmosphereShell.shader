@@ -12,8 +12,6 @@
 		ZWrite Off
 		Blend SrcAlpha OneMinusSrcAlpha
 
-		GrabPass { "_PlanetShellBackbuffer" }
-
 		Pass
 		{
 			CGPROGRAM
@@ -26,14 +24,14 @@
 				float4 vertex : POSITION;
 			};
 
-		struct v2f {
-			float4 pos : SV_POSITION;
-			float3 worldPos : TEXCOORD0;
-			float4 screenPos : TEXCOORD1;
-			UNITY_VERTEX_OUTPUT_STEREO
-		};
+			struct v2f {
+				float4 pos : SV_POSITION;
+				float3 worldPos : TEXCOORD0;
+				float4 screenPos : TEXCOORD1;
+				UNITY_VERTEX_OUTPUT_STEREO
+			};
 
-			sampler2D _PlanetShellBackbuffer;
+			UNITY_DECLARE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer);
 			sampler2D _BlueNoise;
 			sampler2D _BakedOpticalDepth;
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
@@ -53,16 +51,16 @@
 			float planetRadius;
 			float4 backgroundColor;
 
-		v2f vert (appdata v) {
-			v2f o;
-			UNITY_INITIALIZE_OUTPUT(v2f, o);
-			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-			float4 world = mul(unity_ObjectToWorld, v.vertex);
-			o.worldPos = world.xyz;
-			o.pos = UnityWorldToClipPos(world);
-			o.screenPos = ComputeScreenPos(o.pos);
-			return o;
-		}
+			v2f vert (appdata v) {
+				v2f o;
+				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+				float4 world = mul(unity_ObjectToWorld, v.vertex);
+				o.worldPos = world.xyz;
+				o.pos = UnityWorldToClipPos(world);
+				o.screenPos = ComputeScreenPos(o.pos);
+				return o;
+			}
 
 			float2 SquareUV(float2 uv) {
 				float2 resolution = _ScreenParams.xy;
@@ -85,7 +83,7 @@
 				return tex2Dlod(_BakedOpticalDepth, float4(uvX, height01, 0, 0));
 			}
 
-			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv) {
+			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv, out float transmittance) {
 				float blueNoise = tex2Dlod(_BlueNoise, float4(SquareUV(uv) * ditherScale,0,0));
 				blueNoise = (blueNoise - 0.5) * ditherStrength;
 
@@ -131,17 +129,18 @@
 				reflectedLightStrength = lerp(reflectedLightStrength, 1, hdrStrength);
 				float3 reflectedLight = originalCol * reflectedLightStrength;
 
+				transmittance = exp(-viewRayOpticalDepth * scatteringCoefficients.x);
+
 				return reflectedLight + inScatteredLight + originalCol / 3;
 			}
 
-		float4 frag (v2f i) : SV_Target {
-			UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+			float4 frag (v2f i) : SV_Target {
+				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				float3 rayOrigin = _WorldSpaceCameraPos;
 				float3 rayDir = normalize(i.worldPos - rayOrigin);
 
-				float4 clipSpace = i.screenPos / i.screenPos.w;
-				float2 uv = clipSpace.xy;
-				float4 originalCol = tex2D(_PlanetShellBackbuffer, uv);
+				float2 uv = i.screenPos.xy / i.screenPos.w;
+				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, i.screenPos);
 
 				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
 				float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
@@ -160,8 +159,10 @@
 
 				const float epsilon = 0.0001;
 				float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);
-				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, uv);
-				return float4(light, 1);
+				float transmittance;
+				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, uv, transmittance);
+				float alpha = saturate(1 - transmittance);
+				return float4(light, alpha);
 			}
 			ENDCG
 		}

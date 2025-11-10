@@ -25,6 +25,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	[Range(1, 6)]
 	public int colliderSubdivision = 4;
 	public Ship player;
+	public Camera overrideCamera;
 
 	CelestialBodyGenerator generator;
 	CelestialBody celestialBody;
@@ -42,11 +43,10 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	ComputeBuffer vertexBuffer;
 
 	bool initialized;
+	bool waitingForSettings;
 
 	void Awake () {
-		generator = GetComponent<CelestialBodyGenerator> ();
-		player = player ? player : FindFirstObjectByType<Ship> ();
-		celestialBody = GetComponentInParent<CelestialBody> ();
+		RefreshCachedReferences ();
 	}
 
 	void Start () {
@@ -54,6 +54,15 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			return;
 		}
 		Initialize ();
+	}
+
+	public void EnsureInitialized () {
+		if (!Application.isPlaying) {
+			return;
+		}
+		if (!initialized) {
+			Initialize ();
+		}
 	}
 
 	void LateUpdate () {
@@ -68,9 +77,19 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	void Initialize () {
-		if (!generator || generator.ShadingProfile == null || generator.ShapeProfile == null) {
+		RefreshCachedReferences ();
+		if (initialized) {
 			return;
 		}
+
+		if (!generator || generator.ShadingProfile == null || generator.ShapeProfile == null) {
+			if (!waitingForSettings) {
+				Debug.LogWarning ("PlanetTerrainStreamer requires CelestialBodyGenerator with valid shape/shading settings.", this);
+				waitingForSettings = true;
+			}
+			return;
+		}
+		waitingForSettings = false;
 
 		EnsureLodArray ();
 
@@ -80,7 +99,9 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 
 		vertexBuffer = new ComputeBuffer (vertexCount, sizeof (float) * 3);
 
-		terrainMaterial = new Material (generator.ShadingProfile.terrainMaterial);
+		terrainMaterial = new Material (generator.ShadingProfile.terrainMaterial) {
+			enableInstancing = true
+		};
 		generator.ShadingProfile.Initialize (generator.ShapeProfile);
 		generator.ShadingProfile.SetTerrainProperties (terrainMaterial, generator.HeightRange, generator.BodyScale);
 
@@ -135,6 +156,8 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	void UpdateStreaming () {
+		RefreshCachedReferences ();
+
 		Camera cam = GetActiveCamera ();
 		if (!cam) {
 			return;
@@ -178,18 +201,23 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	bool ShouldCullPatch (PlanetTerrainPatch patch, Vector3 cameraPosition) {
-		Vector3 worldCenter = patch.GetWorldCenter (transform);
-		Vector3 worldNormal = patch.GetWorldNormal (transform);
-		Vector3 viewDir = (worldCenter - cameraPosition).normalized;
-		float dot = Vector3.Dot (worldNormal, viewDir);
+		Vector3 planetCenter = transform.position;
+		Vector3 patchDir = patch.GetWorldCenter (transform) - planetCenter;
+		Vector3 cameraDir = cameraPosition - planetCenter;
+
+		if (patchDir.sqrMagnitude < 0.0001f || cameraDir.sqrMagnitude < 0.0001f) {
+			return false;
+		}
+
+		float dot = Vector3.Dot (patchDir.normalized, cameraDir.normalized);
 		return dot < backsideCullDot;
 	}
 
 	bool ShouldSplitPatch (PlanetTerrainPatch patch, Vector3 cameraPosition) {
 		Vector3 worldCenter = patch.GetWorldCenter (transform);
-		float distance = (worldCenter - cameraPosition).magnitude;
+		float surfaceDistance = CalculateSurfaceDistance (cameraPosition, worldCenter);
 		float threshold = GetLodDistance (patch.Key.level);
-		bool nearCamera = distance < threshold;
+		bool nearCamera = surfaceDistance < threshold;
 		bool forceDetail = ShouldForcePlayerDetail (patch);
 		return nearCamera || forceDetail;
 	}
@@ -211,20 +239,17 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	void UpdateCollider (Vector3 cameraPosition) {
-		if (!player || player.ReferenceBody == null || player.ReferenceBody != celestialBody) {
+		RefreshCachedReferences ();
+		if (!TryGetTargetDirection (cameraPosition, out Vector3 localDir, out float altitude)) {
 			SetColliderPatch (null);
 			return;
 		}
 
-		Vector3 planetCenter = transform.position;
-		Vector3 playerPos = player.transform.position;
-		float altitude = Vector3.Distance (playerPos, planetCenter) - generator.BodyScale;
 		if (altitude > colliderActivationDistance) {
 			SetColliderPatch (null);
 			return;
 		}
 
-		Vector3 localDir = transform.InverseTransformDirection ((playerPos - planetCenter).normalized);
 		PlanetTerrainPatch bestPatch = null;
 		int bestLevel = -1;
 
@@ -258,9 +283,25 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 		}
 	}
 
+	float CalculateSurfaceDistance (Vector3 cameraPosition, Vector3 patchCenter) {
+		Vector3 planetCenter = transform.position;
+		Vector3 cameraVector = cameraPosition - planetCenter;
+		Vector3 patchVector = patchCenter - planetCenter;
+		float bodyRadius = generator ? Mathf.Max (generator.BodyScale, 1f) : 1f;
+
+		float altitude = Mathf.Max (0f, cameraVector.magnitude - bodyRadius);
+		float angle = Vector3.Angle (cameraVector, patchVector) * Mathf.Deg2Rad;
+		float arcDistance = angle * bodyRadius;
+
+		return Mathf.Sqrt (arcDistance * arcDistance + altitude * altitude);
+	}
+
 	float GetLodDistance (int level) {
 		int index = Mathf.Clamp (level, 0, lodTargetDistances.Length - 1);
-		return lodTargetDistances[index];
+		float baseDistance = lodTargetDistances[index];
+		float bodyRadius = generator ? Mathf.Max (generator.BodyScale, 1f) : 1f;
+		const float referenceRadius = 6000f;
+		return baseDistance * (bodyRadius / referenceRadius);
 	}
 
 	void EnsureLodArray () {
@@ -291,11 +332,11 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 				int i2 = i0 + vertsPerEdge;
 				int i3 = i2 + 1;
 				tris[index++] = i0;
-				tris[index++] = i2;
-				tris[index++] = i1;
 				tris[index++] = i1;
 				tris[index++] = i2;
+				tris[index++] = i1;
 				tris[index++] = i3;
+				tris[index++] = i2;
 			}
 		}
 		return tris;
@@ -324,22 +365,99 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 		}
 	}
 
-	void SampleHeightsAndShading (Vector3[] directions, Vector3[] vertices, out Vector4[] shading) {
+	Vector3 SampleHeightsAndShading (Vector3[] directions, Vector3[] vertices, out Vector4[] shading) {
 		vertexBuffer.SetData (directions);
 		float[] heights = generator.ShapeProfile.CalculateHeights (vertexBuffer);
 		shading = generator.ShadingProfile.GenerateShadingData (vertexBuffer);
 
+		Vector3 centroid = Vector3.zero;
 		for (int i = 0; i < directions.Length; i++) {
-			vertices[i] = directions[i] * heights[i];
+			Vector3 vertex = directions[i] * heights[i];
+			vertices[i] = vertex;
+			centroid += vertex;
 		}
+
+		int count = Mathf.Max (1, directions.Length);
+		return centroid / count;
 	}
 
 	Camera GetActiveCamera () {
 		if (cachedCamera && cachedCamera.enabled) {
 			return cachedCamera;
 		}
-		cachedCamera = Camera.main;
-		return cachedCamera;
+
+		if (overrideCamera && overrideCamera.enabled) {
+			cachedCamera = overrideCamera;
+			return cachedCamera;
+		}
+
+		var main = Camera.main;
+		if (main && main.enabled) {
+			cachedCamera = main;
+			return cachedCamera;
+		}
+
+		if (Camera.current && Camera.current.enabled) {
+			cachedCamera = Camera.current;
+			return cachedCamera;
+		}
+
+		var allCams = Camera.allCameras;
+		for (int i = 0; i < allCams.Length; i++) {
+			if (allCams[i] && allCams[i].enabled) {
+				cachedCamera = allCams[i];
+				return cachedCamera;
+			}
+		}
+
+		return null;
+	}
+
+	bool TryGetTargetDirection (Vector3 referencePosition, out Vector3 localDir, out float altitude) {
+		Vector3 planetCenter = transform.position;
+		float bodyScale = generator ? generator.BodyScale : 0f;
+
+		if (player && player.ReferenceBody == celestialBody) {
+			Vector3 playerPos = player.transform.position;
+			localDir = transform.InverseTransformDirection ((playerPos - planetCenter).normalized);
+			altitude = Vector3.Distance (playerPos, planetCenter) - bodyScale;
+			return true;
+		}
+
+		Vector3 refVector = referencePosition - planetCenter;
+		if (refVector.sqrMagnitude > 0.0001f) {
+			localDir = transform.InverseTransformDirection (refVector.normalized);
+			altitude = Mathf.Max (0f, refVector.magnitude - bodyScale);
+			return true;
+		}
+
+		localDir = Vector3.up;
+		altitude = float.MaxValue;
+		return false;
+	}
+
+	void RefreshCachedReferences () {
+		if (!generator) {
+			generator = GetComponent<CelestialBodyGenerator> ();
+		}
+		if (!player) {
+			player = FindFirstObjectByType<Ship> ();
+		}
+		if (!celestialBody) {
+			celestialBody = GetComponentInParent<CelestialBody> ();
+		}
+	}
+
+	Vector3 GetPatchNormal (PatchKey key) {
+		int subdivisions = 1 << key.level;
+		float u = (key.x + 0.5f) / subdivisions;
+		float v = (key.y + 0.5f) / subdivisions;
+		return CubeSphereUtility.CubeToSphere (key.face, u, v);
+	}
+
+	Vector3 GetApproxLocalCenter (PatchKey key) {
+		float radius = generator ? generator.BodyScale : 1f;
+		return GetPatchNormal (key) * radius;
 	}
 
 	#region Nested types
@@ -453,6 +571,9 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			faceRect = new Rect (key.x * patchScale, key.y * patchScale, patchScale, patchScale);
 			gameObject.name = $"Patch_f{key.face}_l{key.level}_{key.x}_{key.y}";
 			gameObject.SetActive (true);
+
+			localNormal = owner.GetPatchNormal (key);
+			localCenter = owner.GetApproxLocalCenter (key);
 		}
 
 		public void BuildIfNeeded () {
@@ -461,7 +582,7 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			}
 
 			owner.PopulateSampleDirections (Key, sampleDirections);
-			owner.SampleHeightsAndShading (sampleDirections, vertices, out shadingData);
+			Vector3 centroid = owner.SampleHeightsAndShading (sampleDirections, vertices, out shadingData);
 
 			mesh.Clear ();
 			mesh.SetVertices (vertices);
@@ -470,8 +591,13 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			mesh.RecalculateNormals ();
 			mesh.RecalculateBounds ();
 
-			localCenter = mesh.bounds.center;
-			localNormal = localCenter.sqrMagnitude > 0.0001f ? localCenter.normalized : CubeSphereUtility.FaceNormal (Key.face);
+			if (centroid.sqrMagnitude > 0.0001f) {
+				localCenter = centroid;
+				localNormal = centroid.normalized;
+			} else {
+				localCenter = owner.GetApproxLocalCenter (Key);
+				localNormal = owner.GetPatchNormal (Key);
+			}
 
 			filter.sharedMesh = mesh;
 			meshDirty = false;

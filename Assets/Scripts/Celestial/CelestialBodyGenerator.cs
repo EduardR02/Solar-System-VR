@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteInEditMode, RequireComponent(typeof(PlanetTerrainStreamer))]
@@ -18,8 +17,8 @@ public class CelestialBodyGenerator : MonoBehaviour {
 
 	// Private variables
 	Mesh previewMesh;
-	Mesh collisionMesh;
 	Mesh[] lodMeshes;
+	PlanetTerrainStreamer terrainStreamer;
 
 	ComputeBuffer vertexBuffer;
 
@@ -32,9 +31,12 @@ public class CelestialBodyGenerator : MonoBehaviour {
 	// Game mode data 
 	int activeLODIndex = -1;
 	MeshFilter terrainMeshFilter;
-	Material terrainMatInstance;
 
 	static Dictionary<int, SphereMesh> sphereGenerators;
+
+	void Awake () {
+		terrainStreamer = GetComponent<PlanetTerrainStreamer> ();
+	}
 
 	void Start () {
 		if (InGameMode) {
@@ -70,51 +72,39 @@ public class CelestialBodyGenerator : MonoBehaviour {
 		}
 	}
 
-	// Handles creation of celestial body when entering game mode
-	// This differs from the edit-mode version in the following ways:
-	// • creates all LOD meshes and stores them in mesh array (to be picked based on player position)
-	// • creates its own instances of materials so multiple bodies can exist with their own shading
-	// • doesn't support updating of shape/shading values once generated
+	// Handles creation of celestial body when entering game mode using the streamed terrain pipeline.
 	void HandleGameModeGeneration () {
-		if (CanGenerateMesh ()) {
-			Dummy ();
-
-			// Generate LOD meshes
-			lodMeshes = new Mesh[ResolutionSettings.numLODLevels];
-			for (int i = 0; i < lodMeshes.Length; i++) {
-				Vector2 lodTerrainHeightMinMax = GenerateTerrainMesh (ref lodMeshes[i], resolutionSettings.GetLODResolution (i));
-				// Use min/max height of first (most detailed) LOD
-				if (i == 0) {
-					heightMinMax = lodTerrainHeightMinMax;
-				}
-			}
-
-			// Generate collision mesh
-			GenerateCollisionMesh (resolutionSettings.collider);
-
-			// Create terrain renderer and set shading properties on the instanced material
-			terrainMatInstance = new Material (body.shading.terrainMaterial);
-			body.shading.Initialize (body.shape);
-			body.shading.SetTerrainProperties (terrainMatInstance, heightMinMax, BodyScale);
-			GameObject terrainHolder = GetOrCreateMeshObject ("Terrain Mesh", null, terrainMatInstance);
-			terrainMeshFilter = terrainHolder.GetComponent<MeshFilter> ();
-
-			// Add collider
-			MeshCollider collider;
-			if (!terrainHolder.TryGetComponent<MeshCollider> (out collider)) {
-				collider = terrainHolder.AddComponent<MeshCollider> ();
-			}
-
-			var collisionBakeTimer = System.Diagnostics.Stopwatch.StartNew ();
-			MeshBaker.BakeMeshImmediate (collisionMesh);
-			collider.sharedMesh = collisionMesh;
-			LogTimer (collisionBakeTimer, "Mesh collider");
-
-		} else {
+		if (!CanGenerateMesh ()) {
 			Debug.Log ("Could not generate mesh");
+			ReleaseAllBuffers ();
+			return;
 		}
 
+		Dummy ();
+
+		InitializeStreamedRuntimeData ();
+
 		ReleaseAllBuffers ();
+	}
+
+	void InitializeStreamedRuntimeData () {
+		if (!terrainStreamer) {
+			terrainStreamer = GetComponent<PlanetTerrainStreamer> ();
+		}
+
+		if (!terrainStreamer) {
+			Debug.LogError ($"[{name}] PlanetTerrainStreamer component is required for runtime generation.", this);
+			return;
+		}
+
+		Mesh lod0Mesh = null;
+		heightMinMax = GenerateTerrainMesh (ref lod0Mesh, resolutionSettings.GetLODResolution (0));
+
+		lodMeshes = new Mesh[1];
+		lodMeshes[0] = lod0Mesh;
+
+		terrainMeshFilter = null;
+		terrainStreamer.EnsureInitialized ();
 	}
 
 	// Handles creation of celestial body in the editor
@@ -183,9 +173,14 @@ public class CelestialBodyGenerator : MonoBehaviour {
 	}
 
 	public void SetLOD (int lodIndex) {
-		if (lodIndex != activeLODIndex && terrainMeshFilter) {
-			activeLODIndex = lodIndex;
-			terrainMeshFilter.sharedMesh = lodMeshes[lodIndex];
+		if (!InEditMode || terrainMeshFilter == null || lodMeshes == null || lodMeshes.Length == 0) {
+			return;
+		}
+
+		int clampedIndex = Mathf.Clamp (lodIndex, 0, lodMeshes.Length - 1);
+		if (clampedIndex != activeLODIndex) {
+			activeLODIndex = clampedIndex;
+			terrainMeshFilter.sharedMesh = lodMeshes[activeLODIndex];
 		}
 	}
 
@@ -299,23 +294,6 @@ public class CelestialBodyGenerator : MonoBehaviour {
 		mesh.SetTangents (crudeTangents);
 
 		return new Vector2 (minHeight, maxHeight);
-	}
-
-	void GenerateCollisionMesh (int resolution) {
-		var (vertices, triangles) = CreateSphereVertsAndTris (resolution);
-		ComputeHelper.CreateStructuredBuffer<Vector3> (ref vertexBuffer, vertices);
-
-		// Set heights
-		float[] heights = body.shape.CalculateHeights (vertexBuffer);
-		for (int i = 0; i < vertices.Length; i++) {
-			float height = heights[i];
-			vertices[i] *= height;
-		}
-
-		// Create mesh
-		CreateMesh (ref collisionMesh, vertices.Length);
-		collisionMesh.vertices = vertices;
-		collisionMesh.triangles = triangles;
 	}
 
 	void CreateMesh (ref Mesh mesh, int numVertices) {
@@ -457,7 +435,10 @@ public class CelestialBodyGenerator : MonoBehaviour {
 	}
 
 	bool CanGenerateMesh () {
-		return ComputeHelper.CanRunEditModeCompute && body.shape && body.shape.heightMapCompute;
+		if (Application.isPlaying) {
+			return body && body.shape && body.shape.heightMapCompute;
+		}
+		return ComputeHelper.CanRunEditModeCompute && body && body.shape && body.shape.heightMapCompute;
 	}
 
 	void LogTimer (System.Diagnostics.Stopwatch sw, string text) {
@@ -479,7 +460,14 @@ public class CelestialBodyGenerator : MonoBehaviour {
 	}
 
 	public Vector3[] GetMeshVertices (int lodIndex) {
-		return lodMeshes[lodIndex].vertices;
+		if (lodMeshes == null || lodMeshes.Length == 0) {
+			Debug.LogWarning ($"[{name}] Mesh vertices requested before LOD meshes were generated.");
+			return System.Array.Empty<Vector3> ();
+		}
+
+		int clampedIndex = Mathf.Clamp (lodIndex, 0, lodMeshes.Length - 1);
+		var mesh = lodMeshes[clampedIndex];
+		return mesh ? mesh.vertices : System.Array.Empty<Vector3> ();
 	}
 
 	public bool MeshesAreGenerated {

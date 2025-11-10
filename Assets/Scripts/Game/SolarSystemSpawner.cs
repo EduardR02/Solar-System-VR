@@ -31,6 +31,10 @@ public class SolarSystemSpawner : MonoBehaviour {
 
 			GameObject holder = new GameObject ("Body Generator");
 			var generator = holder.AddComponent<CelestialBodyGenerator> ();
+			var streamer = holder.GetComponent<PlanetTerrainStreamer> ();
+			if (!streamer) {
+				streamer = holder.AddComponent<PlanetTerrainStreamer> ();
+			}
 			generator.transform.parent = body.transform;
 			generator.gameObject.layer = body.gameObject.layer;
 			generator.transform.localRotation = Quaternion.identity;
