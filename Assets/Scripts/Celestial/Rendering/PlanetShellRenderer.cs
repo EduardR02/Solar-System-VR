@@ -386,6 +386,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 	void CopyCameraToBackbuffer () {
 		renderCommandBuffer.Blit (BuiltinRenderTextureType.CameraTarget, PlanetShellBackbufferId);
 		renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, PlanetShellBackbufferId);
+		// CRITICAL FIX: Restore camera as active render target after blit
+		// Blit() sets the destination RT as active. Without this, DrawMesh renders to backbuffer instead of camera!
+		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
 	}
 
 	MaterialPropertyBlock CreateOceanBlock (CelestialBodyGenerator generator, OceanSettings settings, bool randomize, int seed) {
