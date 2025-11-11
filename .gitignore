@@ -64,6 +64,7 @@ crashlytics-build.properties
 # Editor-specific settings
 .vscode/
 .idea/
+.claude/
 
 # TextMesh Pro - ignore package files (keep only user-created assets)
 # The package itself comes through Package Manager
