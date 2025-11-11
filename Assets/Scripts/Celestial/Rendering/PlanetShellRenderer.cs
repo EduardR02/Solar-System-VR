@@ -216,6 +216,11 @@ public class PlanetShellRenderer : MonoBehaviour {
 			if (holder.oceanBlock != null && holder.oceanSettings) {
 				float radius = holder.generator.GetOceanRadius ();
 				holder.oceanVisible = radius > 0.0001f;
+
+				if (Time.frameCount % 120 == 0 && !holder.oceanVisible && holder.generator) {
+					Debug.LogWarning ($"[PlanetShellRenderer] Ocean not visible for {holder.generator.name}: radius={radius}");
+				}
+
 				if (holder.oceanVisible) {
 					holder.oceanMatrix = Matrix4x4.TRS (centre, Quaternion.identity, Vector3.one * radius);
 					holder.oceanBlock.SetVector ("oceanCentre", centre);
@@ -242,6 +247,11 @@ public class PlanetShellRenderer : MonoBehaviour {
 				float atmosphereRadius = holder.atmosphereSettings.GetAtmosphereRadius (planetRadius);
 
 				holder.atmosphereVisible = atmosphereRadius > 0.0001f;
+
+				if (Time.frameCount % 120 == 0 && !holder.atmosphereVisible && holder.generator) {
+					Debug.LogWarning ($"[PlanetShellRenderer] Atmosphere not visible for {holder.generator.name}: atmosphereRadius={atmosphereRadius}");
+				}
+
 				if (holder.atmosphereVisible) {
 					holder.atmosphereMatrix = Matrix4x4.TRS (centre, Quaternion.identity, Vector3.one * atmosphereRadius);
 
@@ -323,15 +333,22 @@ public class PlanetShellRenderer : MonoBehaviour {
 			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
 		}
 
+		// CRITICAL: Set render target so DrawMesh renders to the camera
+		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
+
+		int oceanCount = 0;
+		int atmosphereCount = 0;
 		for (int i = 0; i < effectHolders.Count; i++) {
 			var holder = effectHolders[i];
 
 			if (holder.oceanBlock != null && holder.oceanVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.oceanMatrix, oceanMaterial, 0, 0, holder.oceanBlock);
+				oceanCount++;
 			}
 
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
+				atmosphereCount++;
 				if (needsBackbuffer) {
 					remainingAtmospheres--;
 					if (remainingAtmospheres > 0) {
@@ -343,6 +360,11 @@ public class PlanetShellRenderer : MonoBehaviour {
 
 		if (needsBackbuffer) {
 			renderCommandBuffer.ReleaseTemporaryRT (PlanetShellBackbufferId);
+		}
+
+		// Debug output (can be removed once confirmed working)
+		if (Time.frameCount % 120 == 0 && (oceanCount > 0 || atmosphereCount > 0)) {
+			Debug.Log ($"[PlanetShellRenderer] Rendering {oceanCount} oceans, {atmosphereCount} atmospheres");
 		}
 	}
 
