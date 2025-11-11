@@ -81,19 +81,21 @@
 		float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
 		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
 		float viewProj = dot(rayDir, camForward);
-		if (sceneDepth > 0.0 && abs(viewProj) > 0.0001) {
+		bool hasSceneDepth = sceneDepthNonLinear > 0.0001 && abs(viewProj) > 0.0001;
+		if (hasSceneDepth) {
 			sceneDepth /= viewProj;
 		}
-		else {
-			sceneDepth = 1e6;
-		}
 
-				float2 hitInfo = raySphere(oceanCentre, oceanRadius, rayOrigin, rayDir);
-				float dstToOcean = hitInfo.x;
-				float dstThroughOcean = hitInfo.y;
-		float oceanViewDepth = min(dstThroughOcean, sceneDepth - dstToOcean);
+		float2 planetHit = raySphere(oceanCentre, planetScale, rayOrigin, rayDir);
+		float dstToPlanetSurface = (planetHit.x > 0) ? planetHit.x : 1e6;
+		float surfaceDepth = hasSceneDepth ? sceneDepth : dstToPlanetSurface;
+
+		float2 hitInfo = raySphere(oceanCentre, oceanRadius, rayOrigin, rayDir);
+		float dstToOcean = hitInfo.x;
+		float dstThroughOcean = hitInfo.y;
+		float oceanViewDepth = min(dstThroughOcean, surfaceDepth - dstToOcean);
 		if (oceanViewDepth <= 0) {
-			oceanViewDepth = dstThroughOcean;
+			oceanViewDepth = min(dstThroughOcean, dstToPlanetSurface - dstToOcean);
 			if (oceanViewDepth <= 0) {
 				return 0;
 			}

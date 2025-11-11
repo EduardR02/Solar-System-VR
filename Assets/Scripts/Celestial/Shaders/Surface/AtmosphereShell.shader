@@ -24,14 +24,14 @@
 				float4 vertex : POSITION;
 			};
 
-			struct v2f {
-				float4 pos : SV_POSITION;
-				float3 worldPos : TEXCOORD0;
-				float4 screenPos : TEXCOORD1;
-				UNITY_VERTEX_OUTPUT_STEREO
-			};
+		struct v2f {
+			float4 pos : SV_POSITION;
+			float3 worldPos : TEXCOORD0;
+			float4 screenPos : TEXCOORD1;
+			UNITY_VERTEX_OUTPUT_STEREO
+		};
 
-			UNITY_DECLARE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer);
+		UNITY_DECLARE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer);
 			sampler2D _BlueNoise;
 			sampler2D _BakedOpticalDepth;
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
@@ -51,16 +51,16 @@
 			float planetRadius;
 			float4 backgroundColor;
 
-			v2f vert (appdata v) {
-				v2f o;
-				UNITY_INITIALIZE_OUTPUT(v2f, o);
-				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-				float4 world = mul(unity_ObjectToWorld, v.vertex);
-				o.worldPos = world.xyz;
-				o.pos = UnityWorldToClipPos(world);
-				o.screenPos = ComputeScreenPos(o.pos);
-				return o;
-			}
+		v2f vert (appdata v) {
+			v2f o;
+			UNITY_INITIALIZE_OUTPUT(v2f, o);
+			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+			float4 world = mul(unity_ObjectToWorld, v.vertex);
+			o.worldPos = world.xyz;
+			o.pos = UnityWorldToClipPos(world);
+			o.screenPos = ComputeScreenPos(o.pos);
+			return o;
+		}
 
 			float2 SquareUV(float2 uv) {
 				float2 resolution = _ScreenParams.xy;
@@ -83,7 +83,7 @@
 				return tex2Dlod(_BakedOpticalDepth, float4(uvX, height01, 0, 0));
 			}
 
-			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv, out float transmittance) {
+			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv) {
 				float blueNoise = tex2Dlod(_BlueNoise, float4(SquareUV(uv) * ditherScale,0,0));
 				blueNoise = (blueNoise - 0.5) * ditherStrength;
 
@@ -129,37 +129,39 @@
 				reflectedLightStrength = lerp(reflectedLightStrength, 1, hdrStrength);
 				float3 reflectedLight = originalCol * reflectedLightStrength;
 
-				transmittance = exp(-viewRayOpticalDepth * scatteringCoefficients.x);
-
 				return reflectedLight + inScatteredLight + originalCol / 3;
 			}
 
-			float4 frag (v2f i) : SV_Target {
-				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+		float4 frag (v2f i) : SV_Target {
+			UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 				float3 rayOrigin = _WorldSpaceCameraPos;
 				float3 rayDir = normalize(i.worldPos - rayOrigin);
 
-				float2 uv = i.screenPos.xy / i.screenPos.w;
-				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, i.screenPos);
+		float2 uv = i.screenPos.xy / i.screenPos.w;
+		float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, i.screenPos);
 
 		float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
 		float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
 		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
 		float viewProj = dot(rayDir, camForward);
-		if (sceneDepth > 0.0 && abs(viewProj) > 0.0001) {
+		bool hasSceneDepth = sceneDepthNonLinear > 0.0001 && abs(viewProj) > 0.0001;
+		if (hasSceneDepth) {
 			sceneDepth /= viewProj;
-		} else {
-			sceneDepth = 1e6;
 		}
 
-				float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir);
-				float dstToSurface = min(sceneDepth, dstToOcean);
+		float2 planetHit = raySphere(planetCentre, planetRadius, rayOrigin, rayDir);
+		float dstToPlanetSurface = (planetHit.x > 0) ? planetHit.x : 1e6;
+		float surfaceDepth = hasSceneDepth ? sceneDepth : dstToPlanetSurface;
 
-				float2 hitInfo = raySphere(planetCentre, atmosphereRadius, rayOrigin, rayDir);
-				float dstToAtmosphere = hitInfo.x;
+		float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir);
+		float dstToSurface = min(surfaceDepth, dstToOcean);
+
+		float2 hitInfo = raySphere(planetCentre, atmosphereRadius, rayOrigin, rayDir);
+		float dstToAtmosphere = hitInfo.x;
 		float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
 		if (dstThroughAtmosphere <= 0) {
-			dstThroughAtmosphere = hitInfo.y;
+			float fallbackSurface = min(dstToOcean, dstToPlanetSurface);
+			dstThroughAtmosphere = min(hitInfo.y, fallbackSurface - dstToAtmosphere);
 			if (dstThroughAtmosphere <= 0) {
 				return float4(0,0,0,0);
 			}
@@ -167,10 +169,8 @@
 
 				const float epsilon = 0.0001;
 				float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);
-				float transmittance;
-				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, uv, transmittance);
-				float alpha = saturate(1 - transmittance);
-				return float4(light, alpha);
+				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, uv);
+				return float4(light, 1);
 			}
 			ENDCG
 		}
