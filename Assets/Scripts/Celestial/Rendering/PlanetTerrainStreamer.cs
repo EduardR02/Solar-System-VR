@@ -45,6 +45,10 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	readonly Dictionary<int, int[]> triangleTemplates = new Dictionary<int, int[]> ();
 	ComputeBuffer vertexBuffer;
 	int vertexBufferCapacity;
+	
+	// Cached LOD distances (updated when body scale changes)
+	float[] cachedLodDistances;
+	float lastCachedBodyScale;
 
 	bool initialized;
 	bool waitingForSettings;
@@ -233,8 +237,29 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 			return false;
 		}
 
-		float dot = Vector3.Dot (patchDir.normalized, cameraDir.normalized);
-		return dot < backsideCullDot;
+		// Calculate the angular half-size of the patch based on LOD level
+		// At level 0, each face covers ~90 degrees (1/6th of sphere), so half-angle is ~45 degrees
+		// Each subdivision halves the angular size
+		int subdivisions = 1 << patch.Key.level;
+		float patchAngularHalfSize = (Mathf.PI / 4f) / subdivisions; // in radians
+		
+		// Convert to a dot product threshold adjustment
+		// cos(angle + patchSize) gives the adjusted threshold
+		float dotPatchDir = Vector3.Dot (patchDir.normalized, cameraDir.normalized);
+		
+		// Adjust the cull threshold by the patch angular size to avoid culling patches
+		// whose edges might still be visible even if center is on back side
+		float adjustedCullDot = backsideCullDot - Mathf.Sin (patchAngularHalfSize);
+		
+		// Don't cull if camera is close to or inside the planet (within 2x body radius)
+		float bodyRadius = generator ? generator.BodyScale : 1f;
+		float cameraDist = cameraDir.magnitude;
+		if (cameraDist < bodyRadius * 2f) {
+			// When close, be more conservative with culling
+			adjustedCullDot = Mathf.Min (adjustedCullDot, -0.7f);
+		}
+		
+		return dotPatchDir < adjustedCullDot;
 	}
 
 	bool ShouldSplitPatch (PlanetTerrainPatch patch, Vector3 cameraPosition) {
@@ -321,11 +346,24 @@ public class PlanetTerrainStreamer : MonoBehaviour {
 	}
 
 	float GetLodDistance (int level) {
-		int index = Mathf.Clamp (level, 0, lodTargetDistances.Length - 1);
-		float baseDistance = lodTargetDistances[index];
+		// Use cached distances if available and body scale hasn't changed
 		float bodyRadius = generator ? Mathf.Max (generator.BodyScale, 1f) : 1f;
+		if (cachedLodDistances != null && Mathf.Approximately (lastCachedBodyScale, bodyRadius)) {
+			int cachedIndex = Mathf.Clamp (level, 0, cachedLodDistances.Length - 1);
+			return cachedLodDistances[cachedIndex];
+		}
+		
+		// Rebuild cache
 		const float referenceRadius = 6000f;
-		return baseDistance * (bodyRadius / referenceRadius);
+		float scale = bodyRadius / referenceRadius;
+		cachedLodDistances = new float[lodTargetDistances.Length];
+		for (int i = 0; i < lodTargetDistances.Length; i++) {
+			cachedLodDistances[i] = lodTargetDistances[i] * scale;
+		}
+		lastCachedBodyScale = bodyRadius;
+		
+		int index = Mathf.Clamp (level, 0, cachedLodDistances.Length - 1);
+		return cachedLodDistances[index];
 	}
 
 	void EnsureLodArray () {

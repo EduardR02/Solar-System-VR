@@ -18,6 +18,7 @@
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma multi_compile_instancing
 			#include "UnityCG.cginc"
 			#include "../Includes/Math.cginc"
 			#include "../Includes/Triplanar.cginc"
@@ -25,6 +26,7 @@
 			struct appdata {
 				float4 vertex : POSITION;
 				float3 normal : NORMAL;
+				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 		struct v2f {
@@ -32,6 +34,7 @@
 			float3 worldPos : TEXCOORD0;
 			float3 worldNormal : TEXCOORD1;
 			float4 screenPos : TEXCOORD2;
+			UNITY_VERTEX_INPUT_INSTANCE_ID
 			UNITY_VERTEX_OUTPUT_STEREO
 		};
 
@@ -57,10 +60,15 @@
 			float4 params;
 
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
+			
+			// Per-eye camera positions set by PlanetShellRenderer before command buffer execution
+			float4 _StereoWorldSpaceCameraPos[2];
 
 		v2f vert (appdata v) {
 			v2f o;
+			UNITY_SETUP_INSTANCE_ID(v);
 			UNITY_INITIALIZE_OUTPUT(v2f, o);
+			UNITY_TRANSFER_INSTANCE_ID(v, o);
 			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 			float4 world = mul(unity_ObjectToWorld, v.vertex);
 			o.worldPos = world.xyz;
@@ -71,14 +79,16 @@
 		}
 
 		fixed4 frag (v2f i) : SV_Target {
+			UNITY_SETUP_INSTANCE_ID(i);
 			UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-				float3 rayOrigin = _WorldSpaceCameraPos;
+				// Use per-eye camera position for correct stereo rendering
+				float3 rayOrigin = _StereoWorldSpaceCameraPos[unity_StereoEyeIndex].xyz;
 				float3 toPixel = i.worldPos - rayOrigin;
 				float3 rayDir = normalize(toPixel);
-				float viewLength = length(toPixel);
 
 				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
-				float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
+				// Get camera forward from view matrix (per-eye in stereo)
+				float3 camForward = -UNITY_MATRIX_V[2].xyz;
 				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) / max(0.0001, dot(rayDir, camForward));
 
 				float2 hitInfo = raySphere(oceanCentre, oceanRadius, rayOrigin, rayDir);
@@ -86,7 +96,7 @@
 				float dstThroughOcean = hitInfo.y;
 				float oceanViewDepth = min(dstThroughOcean, sceneDepth - dstToOcean);
 				if (oceanViewDepth <= 0) {
-					return 0;
+					return fixed4(0, 0, 0, 0);
 				}
 
 				float3 rayOceanIntersectPos = rayOrigin + rayDir * dstToOcean - oceanCentre;

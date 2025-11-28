@@ -27,6 +27,10 @@ public class PlanetShellRenderer : MonoBehaviour {
 	static readonly int PlanetShellBackbufferId = Shader.PropertyToID ("_PlanetShellBackbuffer");
 
 	readonly List<EffectHolder> effectHolders = new List<EffectHolder> ();
+	
+	// Stereo eye positions for correct VR rendering
+	readonly Vector4[] stereoEyePositions = new Vector4[2];
+	static readonly int StereoEyePositionsId = Shader.PropertyToID ("_StereoWorldSpaceCameraPos");
 
 	void Awake () {
 		cam = GetComponent<Camera> ();
@@ -59,9 +63,29 @@ public class PlanetShellRenderer : MonoBehaviour {
 		}
 
 		UpdateSunReference ();
+		UpdateStereoEyePositions ();
 		UpdateDynamicProperties ();
 		SortIfNeeded ();
 		BuildCommandBuffer ();
+	}
+	
+	void UpdateStereoEyePositions () {
+		if (!cam) {
+			return;
+		}
+		
+		if (cam.stereoEnabled) {
+			// Calculate per-eye positions from stereo view matrices
+			Matrix4x4 leftEye = cam.GetStereoViewMatrix (Camera.StereoscopicEye.Left).inverse;
+			Matrix4x4 rightEye = cam.GetStereoViewMatrix (Camera.StereoscopicEye.Right).inverse;
+			stereoEyePositions[0] = leftEye.GetColumn (3);
+			stereoEyePositions[1] = rightEye.GetColumn (3);
+		} else {
+			// Non-stereo: both eyes use the same camera position
+			Vector3 pos = cam.transform.position;
+			stereoEyePositions[0] = new Vector4 (pos.x, pos.y, pos.z, 1);
+			stereoEyePositions[1] = stereoEyePositions[0];
+		}
 	}
 
 	void EnsureResources () {
@@ -309,6 +333,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 		}
 
 		renderCommandBuffer.Clear ();
+		
+		// Set stereo eye positions for correct VR rendering
+		renderCommandBuffer.SetGlobalVectorArray (StereoEyePositionsId, stereoEyePositions);
 
 		if (effectHolders.Count == 0 || shellMesh == null || oceanMaterial == null || atmosphereMaterial == null) {
 			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
@@ -333,8 +360,10 @@ public class PlanetShellRenderer : MonoBehaviour {
 			renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, Texture2D.blackTexture);
 		}
 
-		// CRITICAL: Set render target so DrawMesh renders to the camera
-		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
+
+		// Restore render target for shell drawing - use depthSlice -1 for stereo instanced rendering
+		// This tells Unity to render to all stereo slices, allowing proper per-eye rendering
+		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget, 0, CubemapFace.Unknown, -1);
 
 		int oceanCount = 0;
 		int atmosphereCount = 0;
@@ -353,6 +382,8 @@ public class PlanetShellRenderer : MonoBehaviour {
 					remainingAtmospheres--;
 					if (remainingAtmospheres > 0) {
 						CopyCameraToBackbuffer ();
+						// Restore stereo render target after blit (depthSlice -1 for all stereo slices)
+						renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget, 0, CubemapFace.Unknown, -1);
 					}
 				}
 			}
@@ -422,10 +453,16 @@ public class PlanetShellRenderer : MonoBehaviour {
 		block.SetFloat ("waveNormalScale", settings.waveScale);
 		block.SetFloat ("waveNormalScaleScaled", settings.waveScale / Mathf.Max (0.0001f, generator.BodyScale));
 		block.SetFloat ("waveSpeed", settings.waveSpeed);
-		block.SetVector ("params", settings.testParams);
+		// Ensure params.x (alpha multiplier) has a valid default value
+		Vector4 oceanParams = settings.testParams;
+		if (oceanParams.x <= 0.001f) {
+			oceanParams.x = 1f; // Default alpha multiplier
+		}
+		block.SetVector ("params", oceanParams);
 
-		block.SetTexture ("waveNormalA", settings.waveNormalA);
-		block.SetTexture ("waveNormalB", settings.waveNormalB);
+		// Use normal map defaults if textures aren't assigned (prevents null texture sampling)
+		block.SetTexture ("waveNormalA", settings.waveNormalA ? settings.waveNormalA : Texture2D.normalTexture);
+		block.SetTexture ("waveNormalB", settings.waveNormalB ? settings.waveNormalB : Texture2D.normalTexture);
 
 		if (randomize) {
 			var random = new PRNG (seed);

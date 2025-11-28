@@ -65,9 +65,10 @@ public class AtmosphereSettings : ScriptableObject {
 		float scatterZ = Pow (400 / wavelengths.z, 4);
 		binder.SetVector ("scatteringCoefficients", new Vector3 (scatterX, scatterY, scatterZ) * scatteringStrength);
 		binder.SetFloat ("intensity", intensity);
-		binder.SetFloat ("ditherStrength", ditherStrength);
+		binder.SetFloat ("ditherStrength", blueNoise ? ditherStrength : 0f);
 		binder.SetFloat ("ditherScale", ditherScale);
-		binder.SetTexture ("_BlueNoise", blueNoise);
+		// Use white texture as fallback if blueNoise is not assigned (shader expects valid texture)
+		binder.SetTexture ("_BlueNoise", blueNoise ? blueNoise : Texture2D.whiteTexture);
 
 		EnsureOpticalDepthTexture ();
 		binder.SetTexture ("_BakedOpticalDepth", opticalDepthTexture);

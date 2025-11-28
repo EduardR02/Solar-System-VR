@@ -17,17 +17,20 @@
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma multi_compile_instancing
 			#include "UnityCG.cginc"
 			#include "../Includes/Math.cginc"
 
 			struct appdata {
 				float4 vertex : POSITION;
+				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct v2f {
 				float4 pos : SV_POSITION;
 				float3 worldPos : TEXCOORD0;
 				float4 screenPos : TEXCOORD1;
+				UNITY_VERTEX_INPUT_INSTANCE_ID
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
@@ -50,10 +53,15 @@
 			float oceanRadius;
 			float planetRadius;
 			float4 backgroundColor;
+			
+			// Per-eye camera positions set by PlanetShellRenderer before command buffer execution
+			float4 _StereoWorldSpaceCameraPos[2];
 
 			v2f vert (appdata v) {
 				v2f o;
+				UNITY_SETUP_INSTANCE_ID(v);
 				UNITY_INITIALIZE_OUTPUT(v2f, o);
+				UNITY_TRANSFER_INSTANCE_ID(v, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 				float4 world = mul(unity_ObjectToWorld, v.vertex);
 				o.worldPos = world.xyz;
@@ -135,18 +143,25 @@
 			}
 
 			float4 frag (v2f i) : SV_Target {
+				UNITY_SETUP_INSTANCE_ID(i);
 				UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-				float3 rayOrigin = _WorldSpaceCameraPos;
+				
+				// Calculate proper screen UV for texture sampling
+				float2 screenUV = i.screenPos.xy / i.screenPos.w;
+				
+				// Use per-eye camera position for correct stereo rendering
+				float3 rayOrigin = _StereoWorldSpaceCameraPos[unity_StereoEyeIndex].xyz;
 				float3 rayDir = normalize(i.worldPos - rayOrigin);
 
-				float2 uv = i.screenPos.xy / i.screenPos.w;
-				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, i.screenPos);
+				float4 originalCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer, screenUV);
 
 				float sceneDepthNonLinear = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
-				float3 camForward = normalize(-UNITY_MATRIX_V[2].xyz);
+				// Get camera forward from view matrix (per-eye in stereo)
+				float3 camForward = -UNITY_MATRIX_V[2].xyz;
 				float sceneDepth = LinearEyeDepth(sceneDepthNonLinear) / max(0.0001, dot(rayDir, camForward));
 
-				float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir);
+				// Get distance to ocean surface (first component of raySphere result)
+				float dstToOcean = raySphere(planetCentre, oceanRadius, rayOrigin, rayDir).x;
 				float dstToSurface = min(sceneDepth, dstToOcean);
 
 				float2 hitInfo = raySphere(planetCentre, atmosphereRadius, rayOrigin, rayDir);
@@ -154,13 +169,13 @@
 				float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
 
 				if (dstThroughAtmosphere <= 0) {
-					return float4(0,0,0,0);
+					return float4(0, 0, 0, 0);
 				}
 
 				const float epsilon = 0.0001;
 				float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);
 				float transmittance;
-				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, uv, transmittance);
+				float3 light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere - epsilon * 2, originalCol.rgb, screenUV, transmittance);
 				float alpha = saturate(1 - transmittance);
 				return float4(light, alpha);
 			}
