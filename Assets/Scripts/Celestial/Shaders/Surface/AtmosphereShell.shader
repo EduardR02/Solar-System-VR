@@ -34,7 +34,7 @@
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
-			UNITY_DECLARE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer);
+		UNITY_DECLARE_SCREENSPACE_TEXTURE(_PlanetShellBackbuffer);
 			sampler2D _BlueNoise;
 			sampler2D _BakedOpticalDepth;
 			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
@@ -91,7 +91,7 @@
 				return tex2Dlod(_BakedOpticalDepth, float4(uvX, height01, 0, 0));
 			}
 
-			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv, out float transmittance) {
+			float3 CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float3 originalCol, float2 uv) {
 				float blueNoise = tex2Dlod(_BlueNoise, float4(SquareUV(uv) * ditherScale,0,0));
 				blueNoise = (blueNoise - 0.5) * ditherStrength;
 
@@ -136,8 +136,6 @@
 				float hdrStrength = saturate(dot(originalCol,1)/3 - 1);
 				reflectedLightStrength = lerp(reflectedLightStrength, 1, hdrStrength);
 				float3 reflectedLight = originalCol * reflectedLightStrength;
-
-				transmittance = exp(-viewRayOpticalDepth * scatteringCoefficients.x);
 
 				return reflectedLight + inScatteredLight + originalCol / 3;
 			}

@@ -321,14 +321,8 @@ public class PlanetShellRenderer : MonoBehaviour {
 	}
 
 	void BuildCommandBuffer () {
-		if (!cam) {
-			return;
-		}
-
-		EnsureResources ();
-		EnsureCommandBuffer ();
-
 		if (renderCommandBuffer == null) {
+			Debug.LogError("[PlanetShellRenderer] renderCommandBuffer is null!");
 			return;
 		}
 
@@ -342,18 +336,17 @@ public class PlanetShellRenderer : MonoBehaviour {
 			return;
 		}
 
+		var descriptor = CreateBackbufferDescriptor (Mathf.Max (1, cam.pixelWidth), Mathf.Max (1, cam.pixelHeight));
 		bool needsBackbuffer = false;
-		int remainingAtmospheres = 0;
 		for (int i = 0; i < effectHolders.Count; i++) {
 			var holderCheck = effectHolders[i];
 			if (holderCheck.atmosphereBlock != null && holderCheck.atmosphereVisible) {
 				needsBackbuffer = true;
-				remainingAtmospheres++;
+				break;
 			}
 		}
 
 		if (needsBackbuffer) {
-			var descriptor = CreateBackbufferDescriptor (Mathf.Max (1, cam.pixelWidth), Mathf.Max (1, cam.pixelHeight));
 			renderCommandBuffer.GetTemporaryRT (PlanetShellBackbufferId, descriptor, FilterMode.Bilinear);
 			CopyCameraToBackbuffer ();
 		} else {
@@ -373,10 +366,12 @@ public class PlanetShellRenderer : MonoBehaviour {
 			if (holder.oceanBlock != null && holder.oceanVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.oceanMatrix, oceanMaterial, 0, 0, holder.oceanBlock);
 				oceanCount++;
+				oceanCount++;
 			}
 
 			if (holder.atmosphereBlock != null && holder.atmosphereVisible) {
 				renderCommandBuffer.DrawMesh (shellMesh, holder.atmosphereMatrix, atmosphereMaterial, 0, 0, holder.atmosphereBlock);
+				atmosphereCount++;
 				atmosphereCount++;
 				if (needsBackbuffer) {
 					remainingAtmospheres--;
@@ -442,6 +437,9 @@ public class PlanetShellRenderer : MonoBehaviour {
 	void CopyCameraToBackbuffer () {
 		renderCommandBuffer.Blit (BuiltinRenderTextureType.CameraTarget, PlanetShellBackbufferId);
 		renderCommandBuffer.SetGlobalTexture (PlanetShellBackbufferId, PlanetShellBackbufferId);
+		// CRITICAL FIX: Restore camera as active render target after blit
+		// Blit() sets the destination RT as active. Without this, DrawMesh renders to backbuffer instead of camera!
+		renderCommandBuffer.SetRenderTarget (BuiltinRenderTextureType.CameraTarget);
 	}
 
 	MaterialPropertyBlock CreateOceanBlock (CelestialBodyGenerator generator, OceanSettings settings, bool randomize, int seed) {

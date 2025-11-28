@@ -706,7 +706,9 @@ MonoBehaviour:
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
     m_Target: {x: -4351.835, y: -3799.5515, z: -1758.9512}
+    m_Target: {x: -4351.835, y: -3799.5515, z: -1758.9512}
     speed: 2
+    m_Value: {x: -4351.835, y: -3799.5515, z: -1758.9512}
     m_Value: {x: -4351.835, y: -3799.5515, z: -1758.9512}
   m_RenderMode: 0
   m_CameraMode:
@@ -754,11 +756,15 @@ MonoBehaviour:
     m_gridOpacity: 0.5
   m_Rotation:
     m_Target: {x: -0.00951031, y: 0.90333587, z: -0.42837813, w: -0.02005795}
+    m_Target: {x: -0.00951031, y: 0.90333587, z: -0.42837813, w: -0.02005795}
     speed: 2
+    m_Value: {x: -0.009510233, y: 0.90332854, z: -0.42837465, w: -0.020057788}
     m_Value: {x: -0.009510233, y: 0.90332854, z: -0.42837465, w: -0.020057788}
   m_Size:
     m_Target: 8907.193
+    m_Target: 8907.193
     speed: 2
+    m_Value: 8907.193
     m_Value: 8907.193
   m_Ortho:
     m_Target: 0
@@ -812,8 +818,8 @@ MonoBehaviour:
     y: 518
     width: 1598
     height: 759
-  m_MinSize: {x: 100, y: 100}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 101, y: 126}
+  m_MaxSize: {x: 4001, y: 4026}
   m_ActualView: {fileID: 2}
   m_Panes:
   - {fileID: 2}
@@ -904,6 +910,8 @@ MonoBehaviour:
     height: 625
   m_MinSize: {x: 202, y: 226}
   m_MaxSize: {x: 4002, y: 4026}
+  m_MinSize: {x: 202, y: 226}
+  m_MaxSize: {x: 4002, y: 4026}
   m_ActualView: {fileID: 10}
   m_Panes:
   - {fileID: 10}
@@ -951,7 +959,7 @@ MonoBehaviour:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: 16fbffff
+      m_ExpandedIDs: 08fbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -1176,6 +1184,8 @@ MonoBehaviour:
     y: 0
     width: 590
     height: 1277
+  m_MinSize: {x: 276, y: 76}
+  m_MaxSize: {x: 4001, y: 4026}
   m_MinSize: {x: 276, y: 76}
   m_MaxSize: {x: 4001, y: 4026}
   m_ActualView: {fileID: 14}
